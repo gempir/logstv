@@ -33,7 +33,8 @@ type Stream struct {
 
 // Channel struct
 type Channel struct {
-	Name string `json:"name"`
+	Name   string `json:"name"`
+	UserID int64  `json:"_id"`
 }
 
 var keyspaceQuery = `
@@ -43,7 +44,7 @@ var keyspaceQuery = `
 		'replication_factor' : 1 
 	};`
 
-var tableQuery = `
+var messagesQuery = `
 CREATE TABLE IF NOT EXISTS streamlogs.messages (
 	id uuid,
 	channelId bigint,
@@ -53,41 +54,66 @@ CREATE TABLE IF NOT EXISTS streamlogs.messages (
 	PRIMARY KEY (id)
 );`
 
+var channelsQuery = `
+CREATE TABLE IF NOT EXISTS streamlogs.channels (
+	userId bigint,
+	username text,
+	PRIMARY KEY (userId)
+);`
+
+var joinedChannels = []string{}
+
+var cassandra *gocql.Session
+var tClient *twitch.Client
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
 		panic("Error loading .env file")
 	}
 
-	tclient := twitch.NewClient("justinfan123123", "oauth:123123123")
+	tClient = twitch.NewClient("justinfan123123", "oauth:123123123")
 
 	hosts := strings.Split(os.Getenv("DBHOSTS"), ",")
 	cluster := gocql.NewCluster(hosts...)
 
-	session, err := cluster.CreateSession()
-	defer session.Close()
+	cassandra, err = cluster.CreateSession()
+	defer cassandra.Close()
 	if err != nil {
 		panic(err)
 	}
 
-	err = session.Query(keyspaceQuery).Exec()
+	err = cassandra.Query(keyspaceQuery).Exec()
 	if err != nil {
 		panic(err)
 	}
 
-	err = session.Query(tableQuery).Exec()
+	err = cassandra.Query(messagesQuery).Exec()
 	if err != nil {
 		panic(err)
 	}
 
-	tclient.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {
-		fmt.Println(message.Text)
-		err = session.Query("INSERT INTO streamlogs.messages (id, channelId, userId, message, timestamp) VALUES (?, ?, ?, ?, ?)", message.Tags["id"], message.Tags["room-id"], user.UserID, message.Text, message.Time).Exec()
-		if err != nil {
-			log.Printf("Failed INSERT %s", err.Error())
+	err = cassandra.Query(channelsQuery).Exec()
+	if err != nil {
+		panic(err)
+	}
+
+	tClient.OnNewMessage(handleMessage)
+
+	joinSavedChannels()
+
+	go func() {
+		for {
+			joinTop1000Channels()
+			joinSavedChannels()
+			time.Sleep(time.Minute * 15)
 		}
-	})
+	}()
 
+	tClient.Connect()
+}
+
+func joinTop1000Channels() {
 	top := getTopChannels(0)
 	top = append(top, getTopChannels(100)...)
 	top = append(top, getTopChannels(200)...)
@@ -99,29 +125,35 @@ func main() {
 	top = append(top, getTopChannels(800)...)
 	top = append(top, getTopChannels(900)...)
 	top = append(top, getTopChannels(1000)...)
-	top = append(top, getTopChannels(1100)...)
-	top = append(top, getTopChannels(1200)...)
 
-	fmt.Println(top)
 	for _, channel := range top {
-		fmt.Printf("Joining: %s\r\n", channel.Channel.Name)
-		go tclient.Join(channel.Channel.Name)
+		joinChannel(channel.Channel.UserID, channel.Channel.Name)
+	}
+}
+
+func joinSavedChannels() {
+	var channelName string
+	var channelID int64
+
+	iter := cassandra.Query("SELECT userId,username FROM streamlogs.channels").Iter()
+	for iter.Scan(&channelID, &channelName) {
+		joinChannel(channelID, channelName)
+	}
+}
+
+func joinChannel(channelID int64, channelName string) {
+	err := cassandra.Query("INSERT INTO streamlogs.channels (userId, username) VALUES (?, ?) IF NOT EXISTS", channelID, channelName).Exec()
+	if err != nil {
+		fmt.Printf("Failed to insert channel: %s", err.Error())
 	}
 
-	// go func() {
-	// 	for {
-	// 		top := getTopChannels()
-	// 		for _, channel := range top {
-	// 			fmt.Printf("Joining: %s\r\n", channel.Channel.Name)
-	// 			go tclient.Join(channel.Channel.Name)
-	// 		}
-	// 		time.Sleep(time.Hour)
-	// 	}
-	// }()
+	if isJoinedChannel(channelName) {
+		return
+	}
 
-	go tclient.Join("pajlada")
-
-	tclient.Connect()
+	fmt.Printf("Joining: %s\r\n", channelName)
+	tClient.Join(channelName)
+	joinedChannels = append(joinedChannels, channelName)
 }
 
 func getTopChannels(offset int) []Stream {
@@ -140,11 +172,26 @@ func getTopChannels(offset int) []Stream {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(string(contents))
 	var streams Streams
 	json.Unmarshal(contents, &streams)
 
 	return streams.Streams
+}
+
+func handleMessage(channel string, user twitch.User, message twitch.Message) {
+	err := cassandra.Query("INSERT INTO streamlogs.messages (id, channelId, userId, message, timestamp) VALUES (?, ?, ?, ?, ?)", message.Tags["id"], message.Tags["room-id"], user.UserID, message.Text, message.Time).Exec()
+	if err != nil {
+		log.Printf("Failed INSERT %s", err.Error())
+	}
+}
+
+func isJoinedChannel(channelName string) bool {
+	for _, username := range joinedChannels {
+		if username == channelName {
+			return true
+		}
+	}
+	return false
 }
 
 func getEnv(key string) string {
