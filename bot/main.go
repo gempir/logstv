@@ -46,19 +46,18 @@ var keyspaceQuery = `
 
 var messagesQuery = `
 CREATE TABLE IF NOT EXISTS streamlogs.messages (
-	id uuid,
 	channelId bigint,
 	userId bigint,
 	message text,
 	timestamp timestamp,
-	PRIMARY KEY (id)
+	PRIMARY KEY (channelId, userId, timestamp)
 );`
 
 var channelsQuery = `
 CREATE TABLE IF NOT EXISTS streamlogs.channels (
 	userId bigint,
 	username text,
-	PRIMARY KEY (userId)
+	PRIMARY KEY (userId, username)
 );`
 
 var joinedChannels = []string{}
@@ -179,7 +178,7 @@ func getTopChannels(offset int) []Stream {
 }
 
 func handleMessage(channel string, user twitch.User, message twitch.Message) {
-	err := cassandra.Query("INSERT INTO streamlogs.messages (id, channelId, userId, message, timestamp) VALUES (?, ?, ?, ?, ?)", message.Tags["id"], message.Tags["room-id"], user.UserID, message.Text, message.Time).Exec()
+	err := cassandra.Query("INSERT INTO streamlogs.messages (channelId, userId, message, timestamp) VALUES (?, ?, ?, ?)", message.Tags["room-id"], user.UserID, message.Text, message.Time).Exec()
 	if err != nil {
 		log.Printf("Failed INSERT %s", err.Error())
 	}
