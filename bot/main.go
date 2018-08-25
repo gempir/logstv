@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/gempir/go-twitch-irc"
-	"github.com/gempir/streamlogs/common"
+	"github.com/gempir/logstv/common"
 	"github.com/gocql/gocql"
 )
 

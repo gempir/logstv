@@ -7,7 +7,7 @@ import (
 
 	"github.com/gocql/gocql"
 
-	"github.com/gempir/streamlogs/common"
+	"github.com/gempir/logstv/common"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"

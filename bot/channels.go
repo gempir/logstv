@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gempir/streamlogs/common"
+	"github.com/gempir/logstv/common"
 )
 
 type msg struct {

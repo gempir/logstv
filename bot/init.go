@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/gempir/go-twitch-irc"
-	"github.com/gempir/streamlogs/common"
+	"github.com/gempir/logstv/common"
 )
 
 var queries = []string{
