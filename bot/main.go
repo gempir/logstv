@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/gempir/go-twitch-irc"
 	"github.com/gempir/logstv/common"
 	"github.com/gocql/gocql"
@@ -20,15 +22,15 @@ func main() {
 
 	tClient.Join("gempir")
 
-	// joinSavedChannels()
+	joinSavedChannels()
 
-	// go func() {
-	// 	for {
-	// 		joinTop1000Channels()
-	// 		joinSavedChannels()
-	// 		time.Sleep(time.Minute * 15)
-	// 	}
-	// }()
+	go func() {
+		for {
+			joinTop1000Channels()
+			joinSavedChannels()
+			time.Sleep(time.Minute * 15)
+		}
+	}()
 
 	tClient.Connect()
 }
