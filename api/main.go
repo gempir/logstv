@@ -31,15 +31,14 @@ func main() {
 	DefaultCORSConfig := middleware.CORSConfig{
 		Skipper:      middleware.DefaultSkipper,
 		AllowOrigins: []string{"*"},
-		AllowMethods: []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
+		AllowMethods: []string{echo.GET},
 	}
 	e.Use(middleware.CORSWithConfig(DefaultCORSConfig))
 
 	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Welcome to streamlogs!")
+		return c.String(http.StatusOK, "Welcome to api.logs.tv!")
 	})
-	e.GET("/channel/:channel/user/:username", getCurrentUserLogs)
-	e.GET("/channel/:channel/user/:username/:year/:month", getDatedUserLogs)
+	e.GET("/channel/:channel/user/:username", getUserLogs)
 
 	fmt.Println("starting streamlogs API on port :8010")
 	e.Logger.Fatal(e.Start(":8010"))
