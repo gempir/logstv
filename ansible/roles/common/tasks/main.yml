@@ -9,6 +9,37 @@
 - name: Install htop
   apt: name=htop state=present
 
-#- name: Set up iptables rules
-#  copy: src=iptables-save dest=/etc/sysconfig/iptables
-#  notify: restart iptables
+- name: Ensure group "logstv" exists
+  group:
+    name: logstv
+    state: present
+
+- name: Create logstvbot user
+  user:
+    name: logstvbot
+    shell: /bin/bash
+    groups: logstv
+    append: yes
+
+- name: Create logstvapi user
+  user:
+    name: logstvapi
+    shell: /bin/bash
+    groups: logstv
+    append: yes
+
+- name: Creates directory
+  file:
+    path: /etc/logstv
+    state: directory
+    owner: root
+    group: logstv
+    mode: 0750
+
+- name: Create logstv .env file
+  template:
+    src: templates/logstv_env.j2
+    dest: /etc/logstv/.env
+    owner: root
+    group: logstv
+    mode: 0640

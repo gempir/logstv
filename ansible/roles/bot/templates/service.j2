@@ -1,0 +1,11 @@
+[Unit]
+Description=logstvbot
+After=network.target
+
+[Service]
+Restart=always
+RestartSec=5
+ExecStart=/home/logstvbot/bot/bot
+
+[Install]
+WantedBy=multi-user.target

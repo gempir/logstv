@@ -1,8 +1,12 @@
 ---
-- name: Install Nginx and Cassandra
+- name: Provision hosts for logstv
   hosts: all
   remote_user: root
 
   roles:
     - common
+    - geerlingguy.java
+    - cassandra
+    - bot
+    - api
 #    - nginx

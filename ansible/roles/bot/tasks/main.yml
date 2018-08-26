@@ -1,0 +1,6 @@
+---
+  - name: Install Bot Service
+    template: src=templates/service.j2 dest=/etc/systemd/system/logstvbot.service
+
+  - name: Start Bot Service
+    systemd: state=started name=logstvbot daemon_reload=yes

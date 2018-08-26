@@ -8,7 +8,7 @@ import (
 
 // LoadEnv values from .env file into environment variables
 func LoadEnv() {
-	err := godotenv.Load("../.env")
+	err := godotenv.Load("/etc/logstv/.env")
 	if err != nil {
 		panic("Error loading .env file")
 	}

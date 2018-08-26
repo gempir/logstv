@@ -2,3 +2,7 @@
 bot/bot
 api/api
 ansible/playbook.retry
+api_build.tar.gz
+bot_build.tar.gz
+
+.DS_STORE

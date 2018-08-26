@@ -1,0 +1,24 @@
+---
+  - name: Creates cassandra directory
+    file:
+      path: /var/lib/cassandra
+      state: directory
+      owner: cassandra
+      group: cassandra
+      mode: 0770
+
+  - name: Add Cassandra Keys
+    shell: curl https://www.apache.org/dist/cassandra/KEYS | apt-key add -
+ 
+  - name: Add public key 
+    shell: apt-key adv --keyserver pool.sks-keyservers.net --recv-key A278B781FE4B2BDA
+    
+  - name: Add Cassandra repository
+    apt_repository:
+      repo: deb http://www.apache.org/dist/cassandra/debian 311x main
+      state: present
+
+  - name: Update repositories cache and install "cassandra" package
+    apt:
+      name: cassandra
+      update_cache: yes

@@ -1,0 +1,11 @@
+[Unit]
+Description=logstvapi
+After=network.target
+
+[Service]
+Restart=always
+RestartSec=5
+ExecStart=/home/logstvapi/api/api
+
+[Install]
+WantedBy=multi-user.target
