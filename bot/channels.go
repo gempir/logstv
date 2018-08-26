@@ -56,14 +56,14 @@ func joinSavedChannels() {
 	var channelName string
 	var channelID int64
 
-	iter := cassandra.Query("SELECT userId,username FROM streamlogs.channels").Iter()
+	iter := cassandra.Query("SELECT userId,username FROM logstv.channels").Iter()
 	for iter.Scan(&channelID, &channelName) {
 		joinChannel(channelID, channelName)
 	}
 }
 
 func joinChannel(channelID int64, channelName string) {
-	err := cassandra.Query("INSERT INTO streamlogs.channels (userId, username) VALUES (?, ?) IF NOT EXISTS", channelID, channelName).Exec()
+	err := cassandra.Query("INSERT INTO logstv.channels (userId, username) VALUES (?, ?) IF NOT EXISTS", channelID, channelName).Exec()
 	if err != nil {
 		fmt.Printf("Failed to insert channel: %s", err.Error())
 	}

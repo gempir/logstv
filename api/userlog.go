@@ -76,7 +76,7 @@ func getUserLogs(c echo.Context) error {
 	var message message
 	iter := cassandra.Query(`
 	 SELECT message, timestamp
-	 FROM streamlogs.messages 
+	 FROM logstv.messages 
 	 WHERE userid = ? 
 	 AND channelid = ? 
 	 AND timestamp >= ? 
