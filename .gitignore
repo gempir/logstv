@@ -2,7 +2,9 @@
 bot/bot
 api/api
 ansible/playbook.retry
-api_build.tar.gz
-bot_build.tar.gz
+build_api.tar.gz
+build_bot.tar.gz
+build_relaybroker.tar.gz
+relaybroker
 
 .DS_STORE

@@ -31,6 +31,8 @@ var queries = []string{
 
 func startup() {
 	tClient = twitch.NewClient("justinfan123123", "oauth:123123123")
+	tClient.TLS = false
+	tClient.IrcAddress = "127.0.0.1:3333"
 
 	hosts := strings.Split(common.GetEnv("DBHOSTS"), ",")
 	var err error

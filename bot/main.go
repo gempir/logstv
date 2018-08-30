@@ -20,15 +20,10 @@ func main() {
 		go handleMessage(channel, user, message)
 	})
 
-	tClient.Join("gempir")
-
-	joinSavedChannels()
-
 	go func() {
 		for {
-			joinTop1000Channels()
 			joinSavedChannels()
-			time.Sleep(time.Minute * 15)
+			time.Sleep(time.Minute)
 		}
 	}()
 

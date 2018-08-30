@@ -7,6 +7,7 @@
     - common
     - geerlingguy.java
     - cassandra
+    - relaybroker
     - bot
     - api
 #    - nginx
