@@ -1,13 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"time"
-
-	"github.com/gempir/logstv/common"
 )
 
 type msg struct {
@@ -34,40 +29,16 @@ type Channel struct {
 
 var joinedChannels = []string{}
 
-func joinTop1000Channels() {
-	top := getTopChannels(0)
-	top = append(top, getTopChannels(100)...)
-	top = append(top, getTopChannels(200)...)
-	top = append(top, getTopChannels(300)...)
-	top = append(top, getTopChannels(400)...)
-	top = append(top, getTopChannels(500)...)
-	top = append(top, getTopChannels(600)...)
-	top = append(top, getTopChannels(700)...)
-	top = append(top, getTopChannels(800)...)
-	top = append(top, getTopChannels(900)...)
-	top = append(top, getTopChannels(1000)...)
-
-	for _, channel := range top {
-		joinChannel(channel.Channel.UserID, channel.Channel.Name)
-	}
-}
-
 func joinSavedChannels() {
 	var channelName string
-	var channelID int64
 
-	iter := cassandra.Query("SELECT userId,username FROM logstv.channels").Iter()
-	for iter.Scan(&channelID, &channelName) {
-		joinChannel(channelID, channelName)
+	iter := cassandra.Query("SELECT username FROM logstv.channels").Iter()
+	for iter.Scan(&channelName) {
+		joinChannel(channelName)
 	}
 }
 
-func joinChannel(channelID int64, channelName string) {
-	err := cassandra.Query("INSERT INTO logstv.channels (userId, username) VALUES (?, ?) IF NOT EXISTS", channelID, channelName).Exec()
-	if err != nil {
-		fmt.Printf("Failed to insert channel: %s", err.Error())
-	}
-
+func joinChannel(channelName string) {
 	if isJoinedChannel(channelName) {
 		return
 	}
@@ -75,28 +46,6 @@ func joinChannel(channelID int64, channelName string) {
 	fmt.Printf("Joining: %s\r\n", channelName)
 	tClient.Join(channelName)
 	joinedChannels = append(joinedChannels, channelName)
-}
-
-func getTopChannels(offset int) []Stream {
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitch.tv/kraken/streams?limit=100&offset=%d", offset), nil)
-	if err != nil {
-		panic(err)
-	}
-	req.Header.Set("Client-Id", common.GetEnv("CLIENTID"))
-	res, err := client.Do(req)
-	if err != nil {
-		panic(err)
-	}
-
-	contents, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		panic(err)
-	}
-	var streams Streams
-	json.Unmarshal(contents, &streams)
-
-	return streams.Streams
 }
 
 func isJoinedChannel(channelName string) bool {

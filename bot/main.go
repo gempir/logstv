@@ -11,6 +11,7 @@ import (
 
 var cassandra *gocql.Session
 var tClient *twitch.Client
+var userCache = make(map[int64]bool)
 
 func main() {
 	common.LoadEnv()
@@ -27,7 +28,7 @@ func main() {
 		}
 	}()
 
-	tClient.Connect()
+	panic(tClient.Connect())
 }
 
 func handleMessage(channel string, user twitch.User, message twitch.Message) {
@@ -38,7 +39,12 @@ func handleMessage(channel string, user twitch.User, message twitch.Message) {
 		}
 	}()
 	go func() {
-		err := cassandra.Query("INSERT INTO logstv.channels (userId, username) VALUES (?, ?) IF NOT EXISTS", user.UserID, user.Username).Exec()
+		if _, ok := userCache[user.UserID]; ok {
+			return
+		}
+
+		userCache[user.UserID] = true
+		err := cassandra.Query("INSERT INTO logstv.users (userId, username) VALUES (?, ?) IF NOT EXISTS", user.UserID, user.Username).Exec()
 		if err != nil {
 			log.Errorf("Failed channel INSERT %s", err.Error())
 		}
