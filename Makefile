@@ -26,7 +26,7 @@ deploy:
 	@deploy/deploy.sh build_api.tar.gz build_bot.tar.gz	build_relaybroker.tar.gz
 
 provision: 
-	ansible-playbook -i ansible/hosts ansible/playbook.yml --ask-vault-pass
+	ansible-playbook -i ansible/hosts ansible/playbook.yml --ask-vault-pass ${ARGS}
 
 clone_relaybroker:
 	@echo "=== Cloning Relaybroker ==="

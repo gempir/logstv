@@ -2,12 +2,12 @@
 - name: Provision hosts for logstv
   hosts: all
   remote_user: root
-
+  
   roles:
-    - common
-    - geerlingguy.java
-    - cassandra
-    - relaybroker
-    - bot
-    - api
-#    - nginx
+    - {role: 'common', tags: 'common'}
+    - {role: 'geerlingguy.java', tags: 'java'}
+    - {role: 'cassandra', tags: 'cassandra'}
+    - {role: 'relaybroker', tags: 'relaybroker'}
+    - {role: 'bot', tags: 'bot'}
+    - {role: 'api', tags: 'api'}
+    - {role: 'api_nginx', tags: 'api_nginx'}

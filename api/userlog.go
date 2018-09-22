@@ -93,7 +93,7 @@ func getUserLogs(c echo.Context) error {
 		log.Error(err)
 	}
 
-	if c.Request().Header.Get("Content-Type") == "application/json" {
+	if c.Request().Header.Get("Content-Type") == "application/json" || c.QueryParam("content-type") == "json" {
 		return c.JSON(http.StatusOK, userlogResult)
 	}
 

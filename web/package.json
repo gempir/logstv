@@ -1,0 +1,30 @@
+{
+  "name": "logsearch",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "extract-text-webpack-plugin": "^4.0.0-beta.0",
+    "material-design-icons": "^3.0.1",
+    "moment": "^2.21.0",
+    "react": "^16.2.0",
+    "react-dom": "^16.2.0",
+    "react-md": "^1.2.11",
+    "whatwg-fetch": "^2.0.3"
+  },
+  "scripts": {
+    "start": "webpack-dev-server --mode development --content-base public",
+    "build": "npm install && node_modules/.bin/webpack -p --config webpack.config.prod.js --mode production && tar -zcvf build.tar.gz -C build . -C ../public ."
+  },
+  "devDependencies": {
+    "babel-loader": "^7.1.3",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-react": "^6.24.1",
+    "css-loader": "^0.28.10",
+    "node-sass": "^4.7.2",
+    "sass-loader": "^6.0.7",
+    "style-loader": "^0.20.2",
+    "webpack": "^4.0.1",
+    "webpack-cli": "^2.0.10",
+    "webpack-dev-server": "^3.1.0"
+  }
+}

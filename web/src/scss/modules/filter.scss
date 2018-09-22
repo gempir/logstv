@@ -1,0 +1,29 @@
+.filter {
+    position: fixed;
+    display: flex;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    background: $grey-medium;
+    margin-right: 15px;
+    padding: 1rem;
+    @include box-shadow(1);
+
+    .channel-filter, .username-filter {
+        width: 150px;
+        padding-right: 20px;
+    }
+
+    input {
+        &::-webkit-input-placeholder {
+            opacity: 0.25;
+        }
+    }
+
+    .show-logs {
+        position: absolute;
+        bottom: 1rem;
+        right: 1rem;
+    }
+}
