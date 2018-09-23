@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -11,16 +12,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var hourLimit = 744.0
-
-type message struct {
-	Text      string    `json:"text"`
-	Timestamp time.Time `json:"timestamp"`
-}
+var userHourLimit = 744.0
 
 type userlog struct {
-	Username string    `json:"username"`
-	Messages []message `json:"message"`
+	Username string        `json:"username"`
+	Messages []userMessage `json:"message"`
+}
+
+type userMessage struct {
+	Text      string    `json:"text"`
+	Timestamp timestamp `json:"timestamp"`
 }
 
 func getUserLogs(c echo.Context) error {
@@ -62,7 +63,7 @@ func getUserLogs(c echo.Context) error {
 			return c.String(http.StatusBadRequest, fmt.Sprintf("Can't parse to timestamp: %s", err))
 		}
 
-		if toTime.Sub(fromTime).Hours() > hourLimit {
+		if toTime.Sub(fromTime).Hours() > userHourLimit {
 			return c.String(http.StatusBadRequest, "Timespan too big")
 		}
 	}
@@ -73,24 +74,43 @@ func getUserLogs(c echo.Context) error {
 	var userlogResult userlog
 	userlogResult.Username = username
 
-	var message message
 	iter := cassandra.Query(`
-	 SELECT message, timestamp
-	 FROM logstv.messages 
-	 WHERE userid = ? 
-	 AND channelid = ? 
-	 AND timestamp >= ? 
-	 AND timestamp <= ?`,
+		SELECT message, timestamp
+		FROM logstv.messages 
+		WHERE userid = ? 
+		AND channelid = ? 
+		AND timestamp >= ? 
+		AND timestamp <= ?`,
 		userid,
 		channelid,
 		fromTime,
 		toTime).Iter()
-	for iter.Scan(&message.Text, &message.Timestamp) {
+
+	var message userMessage
+	var ts time.Time
+	for iter.Scan(&message.Text, &ts) {
+		message.Timestamp = timestamp{ts}
 
 		userlogResult.Messages = append(userlogResult.Messages, message)
 	}
 	if err := iter.Close(); err != nil {
 		log.Error(err)
+	}
+
+	_, reverse := c.QueryParams()["reverse"]
+	if reverse {
+		sort.SliceStable(userlogResult.Messages, func(i, j int) bool {
+			return userlogResult.Messages[i].Timestamp.Unix() > userlogResult.Messages[j].Timestamp.Unix()
+		})
+	}
+
+	limit := c.QueryParam("limit")
+	if limit != "" {
+		limitInt, err := strconv.Atoi(limit)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, "Invalid limit")
+		}
+		userlogResult.Messages = userlogResult.Messages[:limitInt]
 	}
 
 	if c.Request().Header.Get("Content-Type") == "application/json" || c.QueryParam("type") == "json" {
@@ -108,16 +128,6 @@ func buildTextUserlog(ulog userlog) string {
 	}
 
 	return text
-}
-
-func getUserid(username string) int64 {
-	userid, ok := userCache[username]
-	if !ok {
-		userid = getUseridbyUsername(username)
-		userCache[username] = userid
-	}
-
-	return userid
 }
 
 func parseTimestamp(timestamp string) (time.Time, error) {

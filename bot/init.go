@@ -25,12 +25,12 @@ var queries = []string{
 		username text,
 		PRIMARY KEY (userid, username)
 	);`,
+	`CREATE INDEX IF NOT EXISTS channels_username_index ON logstv.channels (username)`,
 	`CREATE TABLE IF NOT EXISTS logstv.users (
 		userid bigint,
 		username text,
 		PRIMARY KEY (userid, username)
 	);`,
-	`CREATE INDEX IF NOT EXISTS channels_username_index ON logstv.channels (username)`,
 	`CREATE INDEX IF NOT EXISTS users_username_index ON logstv.users (username)`,
 }
 
