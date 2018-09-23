@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/gocql/gocql"
 	"github.com/labstack/echo"
 	log "github.com/sirupsen/logrus"
 )
@@ -73,19 +73,82 @@ func getUserLogs(c echo.Context) error {
 
 	var userlogResult userlog
 	userlogResult.Username = username
+	var iter *gocql.Iter
 
-	iter := cassandra.Query(`
-		SELECT message, timestamp
-		FROM logstv.messages 
-		WHERE userid = ? 
-		AND channelid = ? 
-		AND timestamp >= ? 
-		AND timestamp <= ?
-		ORDER BY timestamp DESC`,
-		userid,
-		channelid,
-		fromTime,
-		toTime).Iter()
+	_, reverse := c.QueryParams()["reverse"]
+	if reverse {
+		limit := c.QueryParam("limit")
+		if limit != "" {
+			limitInt, err := strconv.Atoi(limit)
+			if err != nil || limitInt < 1 {
+				return c.JSON(http.StatusBadRequest, "Invalid limit")
+			}
+
+			iter = cassandra.Query(`
+			SELECT message, timestamp
+			FROM logstv.messages 
+			WHERE userid = ? 
+			AND channelid = ? 
+			AND timestamp >= ? 
+			AND timestamp <= ?
+			ORDER BY timestamp DESC
+			LIMIT ?`,
+				userid,
+				channelid,
+				fromTime,
+				toTime,
+				limitInt).Iter()
+		} else {
+			iter = cassandra.Query(`
+			SELECT message, timestamp
+			FROM logstv.messages 
+			WHERE userid = ? 
+			AND channelid = ? 
+			AND timestamp >= ? 
+			AND timestamp <= ?
+			ORDER BY timestamp DESC`,
+				userid,
+				channelid,
+				fromTime,
+				toTime).Iter()
+		}
+	} else {
+		limit := c.QueryParam("limit")
+		if limit != "" {
+			limitInt, err := strconv.Atoi(limit)
+			if err != nil || limitInt < 1 {
+				return c.JSON(http.StatusBadRequest, "Invalid limit")
+			}
+
+			iter = cassandra.Query(`
+			SELECT message, timestamp
+			FROM logstv.messages 
+			WHERE userid = ? 
+			AND channelid = ? 
+			AND timestamp >= ? 
+			AND timestamp <= ?
+			ORDER BY timestamp ASC
+			LIMIT ?`,
+				userid,
+				channelid,
+				fromTime,
+				toTime,
+				limitInt).Iter()
+		} else {
+			iter = cassandra.Query(`
+			SELECT message, timestamp
+			FROM logstv.messages 
+			WHERE userid = ? 
+			AND channelid = ? 
+			AND timestamp >= ? 
+			AND timestamp <= ?
+			ORDER BY timestamp ASC`,
+				userid,
+				channelid,
+				fromTime,
+				toTime).Iter()
+		}
+	}
 
 	var message userMessage
 	var ts time.Time
@@ -96,22 +159,7 @@ func getUserLogs(c echo.Context) error {
 	}
 	if err := iter.Close(); err != nil {
 		log.Error(err)
-	}
-
-	_, reverse := c.QueryParams()["reverse"]
-	if reverse {
-		sort.SliceStable(userlogResult.Messages, func(i, j int) bool {
-			return userlogResult.Messages[i].Timestamp.Unix() > userlogResult.Messages[j].Timestamp.Unix()
-		})
-	}
-
-	limit := c.QueryParam("limit")
-	if limit != "" {
-		limitInt, err := strconv.Atoi(limit)
-		if err != nil || limitInt < 1 {
-			return c.JSON(http.StatusBadRequest, "Invalid limit")
-		}
-		userlogResult.Messages = userlogResult.Messages[:limitInt]
+		return c.JSON(http.StatusInternalServerError, "Failure reading messages")
 	}
 
 	if c.Request().Header.Get("Content-Type") == "application/json" || c.QueryParam("type") == "json" {
