@@ -80,7 +80,8 @@ func getUserLogs(c echo.Context) error {
 		WHERE userid = ? 
 		AND channelid = ? 
 		AND timestamp >= ? 
-		AND timestamp <= ?`,
+		AND timestamp <= ?
+		ORDER BY timestamp DESC`,
 		userid,
 		channelid,
 		fromTime,
@@ -107,7 +108,7 @@ func getUserLogs(c echo.Context) error {
 	limit := c.QueryParam("limit")
 	if limit != "" {
 		limitInt, err := strconv.Atoi(limit)
-		if err != nil {
+		if err != nil || limitInt < 1 {
 			return c.JSON(http.StatusBadRequest, "Invalid limit")
 		}
 		userlogResult.Messages = userlogResult.Messages[:limitInt]

@@ -14,12 +14,12 @@ var queries = []string{
 		'replication_factor' : 1 
 	};`,
 	`CREATE TABLE IF NOT EXISTS logstv.messages (
+		timestamp timestamp,
 		channelid bigint,
 		userid bigint,
 		message text,
-		timestamp timestamp,
-		PRIMARY KEY (channelid, userid, timestamp)
-	);`,
+		PRIMARY KEY ((channelid, userid), timestamp)
+	) WITH CLUSTERING ORDER BY (timestamp DESC);`,
 	`CREATE TABLE IF NOT EXISTS logstv.channels (
 		userid bigint,
 		username text,
