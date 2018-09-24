@@ -18,7 +18,16 @@ var queries = []string{
 		channelid bigint,
 		userid bigint,
 		message text,
+		type int,
 		PRIMARY KEY ((channelid, userid), timestamp)
+	) WITH CLUSTERING ORDER BY (timestamp DESC);`,
+	`CREATE TABLE IF NOT EXISTS logstv.channel_messages (
+		timestamp timestamp,
+		channelid bigint,
+		userid bigint,
+		message text,
+		type int,
+		PRIMARY KEY ((channelid), timestamp)
 	) WITH CLUSTERING ORDER BY (timestamp DESC);`,
 	`CREATE TABLE IF NOT EXISTS logstv.channels (
 		userid bigint,

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/gempir/go-twitch-irc"
@@ -11,14 +12,34 @@ import (
 
 var cassandra *gocql.Session
 var tClient *twitch.Client
-var userCache = make(map[int64]bool)
 
 func main() {
 	common.LoadEnv()
 	startup()
 
 	tClient.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {
-		go handleMessage(channel, user, message)
+		go persistUser(user.Username, user.UserID)
+
+		channelid, err := strconv.ParseInt(message.Tags["room-id"], 10, 64)
+		if err != nil {
+			log.Errorf("Error parsing room-id to int64: %s", err.Error())
+		}
+		go persistMessage(channelid, user.UserID, message.Text, message.Time, message.Type)
+	})
+
+	tClient.OnNewClearchatMessage(func(channel string, user twitch.User, message twitch.Message) {
+		userid, err := strconv.ParseInt(message.Tags["target-user-id"], 10, 64)
+		if err != nil {
+			log.Errorf("Error parsing target-user-id to int64: %s", err.Error())
+		}
+
+		go persistUser(user.Username, userid)
+
+		channelid, err := strconv.ParseInt(message.Tags["room-id"], 10, 64)
+		if err != nil {
+			log.Errorf("Error parsing room-id to int64: %s", err.Error())
+		}
+		go persistMessage(channelid, userid, message.Text, message.Time, message.Type)
 	})
 
 	go func() {
@@ -31,20 +52,24 @@ func main() {
 	panic(tClient.Connect())
 }
 
-func handleMessage(channel string, user twitch.User, message twitch.Message) {
+func persistMessage(channelid int64, userid int64, messageText string, time time.Time, messageType twitch.MessageType) {
 	go func() {
-		err := cassandra.Query("INSERT INTO logstv.messages (channelId, userId, message, timestamp) VALUES (?, ?, ?, ?)", message.Tags["room-id"], user.UserID, message.Text, message.Time).Exec()
+		err := cassandra.Query("INSERT INTO logstv.messages (channelid, userid, message, timestamp, type) VALUES (?, ?, ?, ?, ?)", channelid, userid, messageText, time, messageType).Exec()
 		if err != nil {
 			log.Errorf("Failed message INSERT %s", err.Error())
 		}
 	}()
 	go func() {
-		if _, ok := userCache[user.UserID]; ok {
-			return
+		err := cassandra.Query("INSERT INTO logstv.channel_messages (channelid, userid, message, timestamp, type) VALUES (?, ?, ?, ?, ?)", channelid, userid, messageText, time, messageType).Exec()
+		if err != nil {
+			log.Errorf("Failed channel_message INSERT %s", err.Error())
 		}
+	}()
+}
 
-		userCache[user.UserID] = true
-		err := cassandra.Query("INSERT INTO logstv.users (userId, username) VALUES (?, ?) IF NOT EXISTS", user.UserID, user.Username).Exec()
+func persistUser(username string, userid int64) {
+	go func() {
+		err := cassandra.Query("INSERT INTO logstv.users (userid, username) VALUES (?, ?) IF NOT EXISTS", userid, username).Exec()
 		if err != nil {
 			log.Errorf("Failed channel INSERT %s", err.Error())
 		}

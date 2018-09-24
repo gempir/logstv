@@ -3,25 +3,16 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/gocql/gocql"
 	"github.com/labstack/echo"
 	log "github.com/sirupsen/logrus"
 )
 
 var channelHourLimit = 24.0
-
-type channelLog struct {
-	Username string           `json:"username"`
-	Messages []channelMessage `json:"message"`
-}
-
-type channelMessage struct {
-	Text      string    `json:"text"`
-	Username  string    `json:"username"`
-	Timestamp timestamp `json:"timestamp"`
-}
 
 func getChannelLogs(c echo.Context) error {
 	channel := strings.TrimSpace(strings.ToLower(c.Param("channel")))
@@ -68,44 +59,92 @@ func getChannelLogs(c echo.Context) error {
 
 	channelid := getUserid(channel)
 
-	var channelLogResult channelLog
+	var logResult chatLog
+	var iter *gocql.Iter
 
-	iter := cassandra.Query(`
-	 SELECT message, timestamp, userid
-	 FROM logstv.messages
-	 WHERE channelid = ?
-	 AND timestamp >= ?
-	 AND timestamp <= ?`,
-		channelid,
-		fromTime,
-		toTime).Iter()
+	_, reverse := c.QueryParams()["reverse"]
+	if reverse {
+		limit := c.QueryParam("limit")
+		if limit != "" {
+			limitInt, err := strconv.Atoi(limit)
+			if err != nil || limitInt < 1 {
+				return c.JSON(http.StatusBadRequest, "Invalid limit")
+			}
 
-	var message channelMessage
+			iter = cassandra.Query(`
+			SELECT message, timestamp, userid, type
+			FROM logstv.channel_messages 
+			WHERE channelid = ? 
+			AND timestamp >= ? 
+			AND timestamp <= ?
+			ORDER BY timestamp DESC
+			LIMIT ?`,
+				channelid,
+				fromTime,
+				toTime,
+				limitInt).Iter()
+		} else {
+			iter = cassandra.Query(`
+			SELECT message, timestamp, userid, type
+			FROM logstv.channel_messages 
+			WHERE channelid = ? 
+			AND timestamp >= ? 
+			AND timestamp <= ?
+			ORDER BY timestamp DESC`,
+				channelid,
+				fromTime,
+				toTime).Iter()
+		}
+	} else {
+		limit := c.QueryParam("limit")
+		if limit != "" {
+			limitInt, err := strconv.Atoi(limit)
+			if err != nil || limitInt < 1 {
+				return c.JSON(http.StatusBadRequest, "Invalid limit")
+			}
+
+			iter = cassandra.Query(`
+			SELECT message, timestamp, userid, type
+			FROM logstv.channel_messages 
+			WHERE channelid = ? 
+			AND timestamp >= ? 
+			AND timestamp <= ?
+			ORDER BY timestamp ASC
+			LIMIT ?`,
+				channelid,
+				fromTime,
+				toTime,
+				limitInt).Iter()
+		} else {
+			iter = cassandra.Query(`
+			SELECT message, timestamp, userid, type
+			FROM logstv.channel_messages 
+			WHERE channelid = ? 
+			AND timestamp >= ? 
+			AND timestamp <= ?
+			ORDER BY timestamp ASC`,
+				channelid,
+				fromTime,
+				toTime).Iter()
+		}
+	}
+
+	var message chatMessage
 	var ts time.Time
 	var userid int64
-	for iter.Scan(&message.Text, &ts, &userid) {
+	for iter.Scan(&message.Text, &ts, &userid, &message.Type) {
 		message.Timestamp = timestamp{ts}
 		message.Username = getUsernameByUserid(userid)
 
-		channelLogResult.Messages = append(channelLogResult.Messages, message)
+		logResult.Messages = append(logResult.Messages, message)
 	}
 	if err := iter.Close(); err != nil {
 		log.Error(err)
 	}
 
 	if c.Request().Header.Get("Content-Type") == "application/json" || c.QueryParam("type") == "json" {
-		return c.JSON(http.StatusOK, channelLogResult)
+		return c.JSON(http.StatusOK, logResult)
 	}
 
-	return c.String(http.StatusOK, "buildTextUserlog(channelLogResult)")
+	return c.String(http.StatusOK, buildTextChatLog(logResult))
 }
-
-// func buildTextUserlog(ulog userlog) string {
-// 	var text string
-
-// 	for _, message := range ulog.Messages {
-// 		text += fmt.Sprintf("[%s] %s: %s\r\n", message.Timestamp.Format("2006-01-2 15:04:05 UTC"), ulog.Username, message.Text)
-// 	}
-
-// 	return text
-// }

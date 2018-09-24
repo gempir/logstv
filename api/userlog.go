@@ -14,16 +14,6 @@ import (
 
 var userHourLimit = 744.0
 
-type userlog struct {
-	Username string        `json:"username"`
-	Messages []userMessage `json:"message"`
-}
-
-type userMessage struct {
-	Text      string    `json:"text"`
-	Timestamp timestamp `json:"timestamp"`
-}
-
 func getUserLogs(c echo.Context) error {
 	channel := strings.TrimSpace(strings.ToLower(c.Param("channel")))
 	username := strings.ToLower(strings.TrimSpace(c.Param("username")))
@@ -71,8 +61,7 @@ func getUserLogs(c echo.Context) error {
 	channelid := getUserid(channel)
 	userid := getUserid(username)
 
-	var userlogResult userlog
-	userlogResult.Username = username
+	var logResult chatLog
 	var iter *gocql.Iter
 
 	_, reverse := c.QueryParams()["reverse"]
@@ -85,7 +74,7 @@ func getUserLogs(c echo.Context) error {
 			}
 
 			iter = cassandra.Query(`
-			SELECT message, timestamp
+			SELECT message, timestamp, userid, type
 			FROM logstv.messages 
 			WHERE userid = ? 
 			AND channelid = ? 
@@ -100,7 +89,7 @@ func getUserLogs(c echo.Context) error {
 				limitInt).Iter()
 		} else {
 			iter = cassandra.Query(`
-			SELECT message, timestamp
+			SELECT message, timestamp, userid, type
 			FROM logstv.messages 
 			WHERE userid = ? 
 			AND channelid = ? 
@@ -121,7 +110,7 @@ func getUserLogs(c echo.Context) error {
 			}
 
 			iter = cassandra.Query(`
-			SELECT message, timestamp
+			SELECT message, timestamp, userid, type
 			FROM logstv.messages 
 			WHERE userid = ? 
 			AND channelid = ? 
@@ -136,7 +125,7 @@ func getUserLogs(c echo.Context) error {
 				limitInt).Iter()
 		} else {
 			iter = cassandra.Query(`
-			SELECT message, timestamp
+			SELECT message, timestamp, userid, type
 			FROM logstv.messages 
 			WHERE userid = ? 
 			AND channelid = ? 
@@ -150,12 +139,14 @@ func getUserLogs(c echo.Context) error {
 		}
 	}
 
-	var message userMessage
+	var message chatMessage
 	var ts time.Time
-	for iter.Scan(&message.Text, &ts) {
+	var fetchedUserid int64
+	for iter.Scan(&message.Text, &ts, &fetchedUserid, &message.Type) {
 		message.Timestamp = timestamp{ts}
+		message.Username = getUsernameByUserid(fetchedUserid)
 
-		userlogResult.Messages = append(userlogResult.Messages, message)
+		logResult.Messages = append(logResult.Messages, message)
 	}
 	if err := iter.Close(); err != nil {
 		log.Error(err)
@@ -163,20 +154,10 @@ func getUserLogs(c echo.Context) error {
 	}
 
 	if c.Request().Header.Get("Content-Type") == "application/json" || c.QueryParam("type") == "json" {
-		return c.JSON(http.StatusOK, userlogResult)
+		return c.JSON(http.StatusOK, logResult)
 	}
 
-	return c.String(http.StatusOK, buildTextUserlog(userlogResult))
-}
-
-func buildTextUserlog(ulog userlog) string {
-	var text string
-
-	for _, message := range ulog.Messages {
-		text += fmt.Sprintf("[%s] %s: %s\r\n", message.Timestamp.Format("2006-01-2 15:04:05 UTC"), ulog.Username, message.Text)
-	}
-
-	return text
+	return c.String(http.StatusOK, buildTextChatLog(logResult))
 }
 
 func parseTimestamp(timestamp string) (time.Time, error) {

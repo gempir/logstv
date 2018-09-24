@@ -9,6 +9,7 @@ import (
 
 	"github.com/gocql/gocql"
 
+	twitch "github.com/gempir/go-twitch-irc"
 	"github.com/gempir/logstv/common"
 
 	"github.com/labstack/echo"
@@ -47,6 +48,17 @@ func main() {
 	log.Fatal(e.Start(":8010"))
 }
 
+type chatLog struct {
+	Messages []chatMessage `json:"messages"`
+}
+
+type chatMessage struct {
+	Text      string    `json:"text"`
+	Username  string    `json:"username"`
+	Timestamp timestamp `json:"timestamp"`
+	Type      int       `json:"type"`
+}
+
 type timestamp struct {
 	time.Time
 }
@@ -64,4 +76,21 @@ func (t *timestamp) UnmarshalJSON(data []byte) error {
 		goTime,
 	}
 	return nil
+}
+
+func buildTextChatLog(cLog chatLog) string {
+	var text string
+
+	for _, cMessage := range cLog.Messages {
+		switch cMessage.Type {
+		case int(twitch.PRIVMSG):
+			text += fmt.Sprintf("[%s] %s: %s\r\n", cMessage.Timestamp.Format("2006-01-2 15:04:05 UTC"), cMessage.Username, cMessage.Text)
+			break
+		case int(twitch.CLEARCHAT):
+			text += fmt.Sprintf("[%s] %s\r\n", cMessage.Timestamp.Format("2006-01-2 15:04:05 UTC"), cMessage.Text)
+			break
+		}
+	}
+
+	return text
 }
