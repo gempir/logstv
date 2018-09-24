@@ -5,10 +5,10 @@ Most of the stuff is still in development.
 
 # TODO 
 
-- verify sort. Currently I rely on cassandra default sort which sorts by partition key, the timestamp is in that so should be fine
 - use versioning for go dependencies
-- Improve deployment script
 - write a frontend
+- jenkinsfile for easier deployments
+- improve messages table so also full channels can be queried
 
 # Helpful
 
