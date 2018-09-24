@@ -24,7 +24,7 @@ func main() {
 		if err != nil {
 			log.Errorf("Error parsing room-id to int64: %s", err.Error())
 		}
-		go persistMessage(channelid, user.UserID, message.Text, message.Time, message.Type)
+		go persistMessage(channelid, user.UserID, message.Time, message.Raw)
 	})
 
 	tClient.OnNewClearchatMessage(func(channel string, user twitch.User, message twitch.Message) {
@@ -39,7 +39,7 @@ func main() {
 		if err != nil {
 			log.Errorf("Error parsing room-id to int64: %s", err.Error())
 		}
-		go persistMessage(channelid, userid, message.Text, message.Time, message.Type)
+		go persistMessage(channelid, userid, message.Time, message.Raw)
 	})
 
 	go func() {
@@ -52,15 +52,21 @@ func main() {
 	panic(tClient.Connect())
 }
 
-func persistMessage(channelid int64, userid int64, messageText string, time time.Time, messageType twitch.MessageType) {
+func persistMessage(channelid int64, userid int64, time time.Time, messageRaw string) {
 	go func() {
-		err := cassandra.Query("INSERT INTO logstv.messages (channelid, userid, message, timestamp, type) VALUES (?, ?, ?, ?, ?)", channelid, userid, messageText, time, messageType).Exec()
+		err := cassandra.Query("INSERT INTO logstv.messages (channelid, userid, message, timestamp) VALUES (?, ?, ?, ?)", channelid, userid, messageRaw, time).Exec()
 		if err != nil {
 			log.Errorf("Failed message INSERT %s", err.Error())
 		}
 	}()
 	go func() {
-		err := cassandra.Query("INSERT INTO logstv.channel_messages (channelid, userid, message, timestamp, type) VALUES (?, ?, ?, ?, ?)", channelid, userid, messageText, time, messageType).Exec()
+		err := cassandra.Query("INSERT INTO logstv.channel_messages (channelid, userid, message, timestamp) VALUES (?, ?, ?, ?)", channelid, userid, messageRaw, time).Exec()
+		if err != nil {
+			log.Errorf("Failed channel_message INSERT %s", err.Error())
+		}
+	}()
+	go func() {
+		err := cassandra.Query("INSERT INTO logstv.user_messages (channelid, userid, message, timestamp) VALUES (?, ?, ?, ?)", channelid, userid, messageRaw, time).Exec()
 		if err != nil {
 			log.Errorf("Failed channel_message INSERT %s", err.Error())
 		}

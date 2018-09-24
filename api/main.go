@@ -53,10 +53,10 @@ type chatLog struct {
 }
 
 type chatMessage struct {
-	Text      string    `json:"text"`
-	Username  string    `json:"username"`
-	Timestamp timestamp `json:"timestamp"`
-	Type      int       `json:"type"`
+	Text      string             `json:"text"`
+	Username  string             `json:"username"`
+	Timestamp timestamp          `json:"timestamp"`
+	Type      twitch.MessageType `json:"type"`
 }
 
 type timestamp struct {
@@ -83,10 +83,10 @@ func buildTextChatLog(cLog chatLog) string {
 
 	for _, cMessage := range cLog.Messages {
 		switch cMessage.Type {
-		case int(twitch.PRIVMSG):
+		case twitch.PRIVMSG:
 			text += fmt.Sprintf("[%s] %s: %s\r\n", cMessage.Timestamp.Format("2006-01-2 15:04:05 UTC"), cMessage.Username, cMessage.Text)
 			break
-		case int(twitch.CLEARCHAT):
+		case twitch.CLEARCHAT:
 			text += fmt.Sprintf("[%s] %s\r\n", cMessage.Timestamp.Format("2006-01-2 15:04:05 UTC"), cMessage.Text)
 			break
 		}

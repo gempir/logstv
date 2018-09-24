@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gempir/go-twitch-irc"
+
 	"github.com/gocql/gocql"
 	"github.com/labstack/echo"
 	log "github.com/sirupsen/logrus"
@@ -74,7 +76,7 @@ func getUserLogs(c echo.Context) error {
 			}
 
 			iter = cassandra.Query(`
-			SELECT message, timestamp, userid, type
+			SELECT message, timestamp, userid
 			FROM logstv.messages 
 			WHERE userid = ? 
 			AND channelid = ? 
@@ -89,7 +91,7 @@ func getUserLogs(c echo.Context) error {
 				limitInt).Iter()
 		} else {
 			iter = cassandra.Query(`
-			SELECT message, timestamp, userid, type
+			SELECT message, timestamp, userid
 			FROM logstv.messages 
 			WHERE userid = ? 
 			AND channelid = ? 
@@ -110,7 +112,7 @@ func getUserLogs(c echo.Context) error {
 			}
 
 			iter = cassandra.Query(`
-			SELECT message, timestamp, userid, type
+			SELECT message, timestamp, userid
 			FROM logstv.messages 
 			WHERE userid = ? 
 			AND channelid = ? 
@@ -125,7 +127,7 @@ func getUserLogs(c echo.Context) error {
 				limitInt).Iter()
 		} else {
 			iter = cassandra.Query(`
-			SELECT message, timestamp, userid, type
+			SELECT message, timestamp, userid
 			FROM logstv.messages 
 			WHERE userid = ? 
 			AND channelid = ? 
@@ -142,12 +144,18 @@ func getUserLogs(c echo.Context) error {
 	var message chatMessage
 	var ts time.Time
 	var fetchedUserid int64
-	for iter.Scan(&message.Text, &ts, &fetchedUserid, &message.Type) {
+	var messageRaw string
+	for iter.Scan(&messageRaw, &ts, &fetchedUserid) {
+		_, user, parsedMessage := twitch.ParseMessage(messageRaw)
+
 		message.Timestamp = timestamp{ts}
-		message.Username = getUsernameByUserid(fetchedUserid)
+		message.Username = user.Username
+		message.Text = parsedMessage.Text
+		message.Type = parsedMessage.Type
 
 		logResult.Messages = append(logResult.Messages, message)
 	}
+
 	if err := iter.Close(); err != nil {
 		log.Error(err)
 		return c.JSON(http.StatusInternalServerError, "Failure reading messages")

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	twitch "github.com/gempir/go-twitch-irc"
 	"github.com/gocql/gocql"
 	"github.com/labstack/echo"
 	log "github.com/sirupsen/logrus"
@@ -72,7 +73,7 @@ func getChannelLogs(c echo.Context) error {
 			}
 
 			iter = cassandra.Query(`
-			SELECT message, timestamp, userid, type
+			SELECT message, timestamp, userid
 			FROM logstv.channel_messages 
 			WHERE channelid = ? 
 			AND timestamp >= ? 
@@ -85,7 +86,7 @@ func getChannelLogs(c echo.Context) error {
 				limitInt).Iter()
 		} else {
 			iter = cassandra.Query(`
-			SELECT message, timestamp, userid, type
+			SELECT message, timestamp, userid
 			FROM logstv.channel_messages 
 			WHERE channelid = ? 
 			AND timestamp >= ? 
@@ -104,7 +105,7 @@ func getChannelLogs(c echo.Context) error {
 			}
 
 			iter = cassandra.Query(`
-			SELECT message, timestamp, userid, type
+			SELECT message, timestamp, userid
 			FROM logstv.channel_messages 
 			WHERE channelid = ? 
 			AND timestamp >= ? 
@@ -117,7 +118,7 @@ func getChannelLogs(c echo.Context) error {
 				limitInt).Iter()
 		} else {
 			iter = cassandra.Query(`
-			SELECT message, timestamp, userid, type
+			SELECT message, timestamp, userid
 			FROM logstv.channel_messages 
 			WHERE channelid = ? 
 			AND timestamp >= ? 
@@ -131,13 +132,19 @@ func getChannelLogs(c echo.Context) error {
 
 	var message chatMessage
 	var ts time.Time
-	var userid int64
-	for iter.Scan(&message.Text, &ts, &userid, &message.Type) {
+	var fetchedUserid int64
+	var messageRaw string
+	for iter.Scan(&messageRaw, &ts, &fetchedUserid) {
+		_, user, parsedMessage := twitch.ParseMessage(messageRaw)
+
 		message.Timestamp = timestamp{ts}
-		message.Username = getUsernameByUserid(userid)
+		message.Username = user.Username
+		message.Text = parsedMessage.Text
+		message.Type = parsedMessage.Type
 
 		logResult.Messages = append(logResult.Messages, message)
 	}
+
 	if err := iter.Close(); err != nil {
 		log.Error(err)
 	}
