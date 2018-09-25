@@ -78,16 +78,16 @@ func (t *timestamp) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func buildTextChatLog(cLog chatLog) string {
+func writeTextChatLog(cLog *chatLog, response *echo.Response) string {
 	var text string
 
 	for _, cMessage := range cLog.Messages {
 		switch cMessage.Type {
 		case twitch.PRIVMSG:
-			text += fmt.Sprintf("[%s] %s: %s\r\n", cMessage.Timestamp.Format("2006-01-2 15:04:05 UTC"), cMessage.Username, cMessage.Text)
+			response.Write([]byte(fmt.Sprintf("[%s] %s: %s\r\n", cMessage.Timestamp.Format("2006-01-2 15:04:05 UTC"), cMessage.Username, cMessage.Text)))
 			break
 		case twitch.CLEARCHAT:
-			text += fmt.Sprintf("[%s] %s\r\n", cMessage.Timestamp.Format("2006-01-2 15:04:05 UTC"), cMessage.Text)
+			response.Write([]byte(fmt.Sprintf("[%s] %s\r\n", cMessage.Timestamp.Format("2006-01-2 15:04:05 UTC"), cMessage.Text)))
 			break
 		}
 	}

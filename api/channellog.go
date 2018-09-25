@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -108,8 +109,16 @@ func getChannelLogs(c echo.Context) error {
 	}
 
 	if c.Request().Header.Get("Content-Type") == "application/json" || c.QueryParam("type") == "json" {
-		return c.JSON(http.StatusOK, logResult)
+		json, err := json.Marshal(logResult)
+		if err != nil {
+			return c.String(http.StatusInternalServerError, "Failure marshalling json")
+		}
+
+		return c.Blob(http.StatusOK, "application/json", json)
 	}
 
-	return c.String(http.StatusOK, buildTextChatLog(logResult))
+	c.Response().WriteHeader(http.StatusOK)
+	writeTextChatLog(&logResult, c.Response())
+
+	return nil
 }
