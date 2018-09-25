@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -20,51 +19,15 @@ func getUserLogs(c echo.Context) error {
 	channel := strings.TrimSpace(strings.ToLower(c.Param("channel")))
 	username := strings.ToLower(strings.TrimSpace(c.Param("username")))
 
-	from := c.QueryParam("from")
-	to := c.QueryParam("to")
-
-	var fromTime time.Time
-	var toTime time.Time
-
-	if from == "" && to == "" {
-		fromTime = time.Now().AddDate(0, -1, 0)
-		toTime = time.Now()
-	} else if from == "" && to != "" {
-		var err error
-		toTime, err = parseTimestamp(to)
-		if err != nil {
-			return c.String(http.StatusBadRequest, fmt.Sprintf("Can't parse to timestamp: %s", err))
-		}
-		fromTime = toTime.AddDate(0, -1, 0)
-	} else if from != "" && to == "" {
-		var err error
-		fromTime, err = parseTimestamp(from)
-		if err != nil {
-			return c.String(http.StatusBadRequest, fmt.Sprintf("Can't parse from timestamp: %s", err))
-		}
-		toTime = fromTime.AddDate(0, 1, 0)
-	} else {
-		var err error
-
-		fromTime, err = parseTimestamp(from)
-		if err != nil {
-			return c.String(http.StatusBadRequest, fmt.Sprintf("Can't parse from timestamp: %s", err))
-		}
-		toTime, err = parseTimestamp(to)
-		if err != nil {
-			return c.String(http.StatusBadRequest, fmt.Sprintf("Can't parse to timestamp: %s", err))
-		}
-
-		if toTime.Sub(fromTime).Hours() > userHourLimit {
-			return c.String(http.StatusBadRequest, "Timespan too big")
-		}
+	fromTime, toTime, err := parseFromTo(c.QueryParam("from"), c.QueryParam("to"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
 	channelid := getUserid(channel)
 	userid := getUserid(username)
 
 	var logResult chatLog
-	var err error
 
 	orderBy := orderAsc
 	_, reverse := c.QueryParams()["reverse"]
@@ -114,12 +77,10 @@ func getUserLogs(c echo.Context) error {
 	}
 
 	if c.Request().Header.Get("Content-Type") == "application/json" || c.QueryParam("type") == "json" {
-		json, err := json.Marshal(logResult)
-		if err != nil {
-			return c.String(http.StatusInternalServerError, "Failure marshalling json")
-		}
+		c.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationJSONCharsetUTF8)
+		c.Response().WriteHeader(http.StatusOK)
 
-		return c.Blob(http.StatusOK, "application/json", json)
+		return json.NewEncoder(c.Response()).Encode(logResult)
 	}
 
 	c.Response().WriteHeader(http.StatusOK)

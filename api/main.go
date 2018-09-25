@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -93,4 +94,45 @@ func writeTextChatLog(cLog *chatLog, response *echo.Response) string {
 	}
 
 	return text
+}
+
+func parseFromTo(from, to string) (time.Time, time.Time, error) {
+	var fromTime time.Time
+	var toTime time.Time
+
+	if from == "" && to == "" {
+		fromTime = time.Now().AddDate(0, -1, 0)
+		toTime = time.Now()
+	} else if from == "" && to != "" {
+		var err error
+		toTime, err = parseTimestamp(to)
+		if err != nil {
+			return fromTime, toTime, fmt.Errorf("Can't parse to timestamp: %s", err)
+		}
+		fromTime = toTime.AddDate(0, -1, 0)
+	} else if from != "" && to == "" {
+		var err error
+		fromTime, err = parseTimestamp(from)
+		if err != nil {
+			return fromTime, toTime, fmt.Errorf("Can't parse from timestamp: %s", err)
+		}
+		toTime = fromTime.AddDate(0, 1, 0)
+	} else {
+		var err error
+
+		fromTime, err = parseTimestamp(from)
+		if err != nil {
+			return fromTime, toTime, fmt.Errorf("Can't parse from timestamp: %s", err)
+		}
+		toTime, err = parseTimestamp(to)
+		if err != nil {
+			return fromTime, toTime, fmt.Errorf("Can't parse to timestamp: %s", err)
+		}
+
+		if toTime.Sub(fromTime).Hours() > channelHourLimit {
+			return fromTime, toTime, errors.New("Timespan too big")
+		}
+	}
+
+	return fromTime, toTime, nil
 }
