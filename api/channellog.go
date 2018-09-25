@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
@@ -72,14 +71,8 @@ func getChannelLogs(c echo.Context) error {
 	}
 
 	if c.Request().Header.Get("Content-Type") == "application/json" || c.QueryParam("type") == "json" {
-		c.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationJSONCharsetUTF8)
-		c.Response().WriteHeader(http.StatusOK)
-
-		return json.NewEncoder(c.Response()).Encode(logResult)
+		return writeJSONResponse(c, &logResult)
 	}
 
-	c.Response().WriteHeader(http.StatusOK)
-	writeTextChatLog(&logResult, c.Response())
-
-	return nil
+	return writeTextResponse(c, &logResult)
 }

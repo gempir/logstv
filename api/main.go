@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
+	jsoniter "github.com/json-iterator/go"
 
 	twitch "github.com/gempir/go-twitch-irc"
 	"github.com/gempir/logstv/common"
@@ -79,23 +81,6 @@ func (t *timestamp) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func writeTextChatLog(cLog *chatLog, response *echo.Response) string {
-	var text string
-
-	for _, cMessage := range cLog.Messages {
-		switch cMessage.Type {
-		case twitch.PRIVMSG:
-			response.Write([]byte(fmt.Sprintf("[%s] %s: %s\r\n", cMessage.Timestamp.Format("2006-01-2 15:04:05 UTC"), cMessage.Username, cMessage.Text)))
-			break
-		case twitch.CLEARCHAT:
-			response.Write([]byte(fmt.Sprintf("[%s] %s\r\n", cMessage.Timestamp.Format("2006-01-2 15:04:05 UTC"), cMessage.Text)))
-			break
-		}
-	}
-
-	return text
-}
-
 func parseFromTo(from, to string) (time.Time, time.Time, error) {
 	var fromTime time.Time
 	var toTime time.Time
@@ -135,4 +120,39 @@ func parseFromTo(from, to string) (time.Time, time.Time, error) {
 	}
 
 	return fromTime, toTime, nil
+}
+
+func writeTextResponse(c echo.Context, cLog *chatLog) error {
+	c.Response().WriteHeader(http.StatusOK)
+
+	for _, cMessage := range cLog.Messages {
+		switch cMessage.Type {
+		case twitch.PRIVMSG:
+			c.Response().Write([]byte(fmt.Sprintf("[%s] %s: %s\r\n", cMessage.Timestamp.Format("2006-01-2 15:04:05 UTC"), cMessage.Username, cMessage.Text)))
+			break
+		case twitch.CLEARCHAT:
+			c.Response().Write([]byte(fmt.Sprintf("[%s] %s\r\n", cMessage.Timestamp.Format("2006-01-2 15:04:05 UTC"), cMessage.Text)))
+			break
+		}
+	}
+
+	return nil
+}
+
+func writeJSONResponse(c echo.Context, logResult *chatLog) error {
+	_, stream := c.QueryParams()["stream"]
+	if stream {
+		c.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationJSONCharsetUTF8)
+		c.Response().WriteHeader(http.StatusOK)
+
+		return json.NewEncoder(c.Response()).Encode(logResult)
+	}
+
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
+	data, err := json.Marshal(logResult)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.Blob(http.StatusOK, echo.MIMEApplicationJSONCharsetUTF8, data)
 }
