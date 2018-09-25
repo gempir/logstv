@@ -9,7 +9,6 @@ import (
 
 	"github.com/gempir/go-twitch-irc"
 
-	"github.com/gocql/gocql"
 	"github.com/labstack/echo"
 	log "github.com/sirupsen/logrus"
 )
@@ -64,82 +63,34 @@ func getUserLogs(c echo.Context) error {
 	userid := getUserid(username)
 
 	var logResult chatLog
-	var iter *gocql.Iter
+	var err error
 
+	orderBy := orderAsc
 	_, reverse := c.QueryParams()["reverse"]
 	if reverse {
-		limit := c.QueryParam("limit")
-		if limit != "" {
-			limitInt, err := strconv.Atoi(limit)
-			if err != nil || limitInt < 1 {
-				return c.JSON(http.StatusBadRequest, "Invalid limit")
-			}
+		orderBy = orderDesc
+	}
 
-			iter = cassandra.Query(`
-			SELECT message, timestamp, userid
-			FROM logstv.messages 
-			WHERE userid = ? 
-			AND channelid = ? 
-			AND timestamp >= ? 
-			AND timestamp <= ?
-			ORDER BY timestamp DESC
-			LIMIT ?`,
-				userid,
-				channelid,
-				fromTime,
-				toTime,
-				limitInt).Iter()
-		} else {
-			iter = cassandra.Query(`
-			SELECT message, timestamp, userid
-			FROM logstv.messages 
-			WHERE userid = ? 
-			AND channelid = ? 
-			AND timestamp >= ? 
-			AND timestamp <= ?
-			ORDER BY timestamp DESC`,
-				userid,
-				channelid,
-				fromTime,
-				toTime).Iter()
-		}
-	} else {
-		limit := c.QueryParam("limit")
-		if limit != "" {
-			limitInt, err := strconv.Atoi(limit)
-			if err != nil || limitInt < 1 {
-				return c.JSON(http.StatusBadRequest, "Invalid limit")
-			}
+	limit := c.QueryParam("limit")
+	limitInt := 0
+	if limit != "" {
+		limitInt, err = strconv.Atoi(limit)
 
-			iter = cassandra.Query(`
-			SELECT message, timestamp, userid
-			FROM logstv.messages 
-			WHERE userid = ? 
-			AND channelid = ? 
-			AND timestamp >= ? 
-			AND timestamp <= ?
-			ORDER BY timestamp ASC
-			LIMIT ?`,
-				userid,
-				channelid,
-				fromTime,
-				toTime,
-				limitInt).Iter()
-		} else {
-			iter = cassandra.Query(`
-			SELECT message, timestamp, userid
-			FROM logstv.messages 
-			WHERE userid = ? 
-			AND channelid = ? 
-			AND timestamp >= ? 
-			AND timestamp <= ?
-			ORDER BY timestamp ASC`,
-				userid,
-				channelid,
-				fromTime,
-				toTime).Iter()
+		if err != nil || limitInt < 1 {
+			return c.JSON(http.StatusBadRequest, "Invalid limit")
 		}
 	}
+
+	selectFields := []string{"message", "timestamp", "userid"}
+	whereClauses := []string{"userid = ?", "channelid = ?", "timestamp >= ?", "timestamp <= ?"}
+
+	iter := cassandra.Query(
+		buildQuery(selectFields, "logstv.messages", whereClauses, orderBy, limitInt),
+		userid,
+		channelid,
+		fromTime,
+		toTime,
+	).Iter()
 
 	var message chatMessage
 	var ts time.Time
