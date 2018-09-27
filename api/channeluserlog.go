@@ -12,16 +12,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var userHourLimit = 744.0
+var channelUserHourLimit = 744.0
 
-func getUserLogs(c echo.Context) error {
+func getChannelUserLogs(c echo.Context) error {
+	channel := strings.TrimSpace(strings.ToLower(c.Param("channel")))
 	username := strings.ToLower(strings.TrimSpace(c.Param("username")))
 
-	fromTime, toTime, err := parseFromTo(c.QueryParam("from"), c.QueryParam("to"), userHourLimit)
+	fromTime, toTime, err := parseFromTo(c.QueryParam("from"), c.QueryParam("to"), channelUserHourLimit)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
+	channelid := getUserid(channel)
 	userid := getUserid(username)
 
 	var logResult chatLog
@@ -43,11 +45,12 @@ func getUserLogs(c echo.Context) error {
 	}
 
 	selectFields := []string{"message", "timestamp", "userid"}
-	whereClauses := []string{"userid = ?", "timestamp >= ?", "timestamp <= ?"}
+	whereClauses := []string{"userid = ?", "channelid = ?", "timestamp >= ?", "timestamp <= ?"}
 
 	iter := cassandra.Query(
-		buildQuery(selectFields, "logstv.user_messages", whereClauses, orderBy, limitInt),
+		buildQuery(selectFields, "logstv.messages", whereClauses, orderBy, limitInt),
 		userid,
+		channelid,
 		fromTime,
 		toTime,
 	).Iter()

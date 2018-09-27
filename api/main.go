@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,8 +45,9 @@ func main() {
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Welcome to api.logs.tv!")
 	})
-	e.GET("/channel/:channel/user/:username", getUserLogs)
+	e.GET("/channel/:channel/user/:username", getChannelUserLogs)
 	e.GET("/channel/:channel", getChannelLogs)
+	e.GET("/user/:username", getUserLogs)
 
 	fmt.Println("starting streamlogs API on port :8010")
 	log.Fatal(e.Start(":8010"))
@@ -58,6 +60,7 @@ type chatLog struct {
 type chatMessage struct {
 	Text      string             `json:"text"`
 	Username  string             `json:"username"`
+	Channel   string             `json:"channel"`
 	Timestamp timestamp          `json:"timestamp"`
 	Type      twitch.MessageType `json:"type"`
 }
@@ -81,7 +84,7 @@ func (t *timestamp) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func parseFromTo(from, to string) (time.Time, time.Time, error) {
+func parseFromTo(from, to string, limit float64) (time.Time, time.Time, error) {
 	var fromTime time.Time
 	var toTime time.Time
 
@@ -114,7 +117,7 @@ func parseFromTo(from, to string) (time.Time, time.Time, error) {
 			return fromTime, toTime, fmt.Errorf("Can't parse to timestamp: %s", err)
 		}
 
-		if toTime.Sub(fromTime).Hours() > channelHourLimit {
+		if toTime.Sub(fromTime).Hours() > limit {
 			return fromTime, toTime, errors.New("Timespan too big")
 		}
 	}
@@ -128,10 +131,10 @@ func writeTextResponse(c echo.Context, cLog *chatLog) error {
 	for _, cMessage := range cLog.Messages {
 		switch cMessage.Type {
 		case twitch.PRIVMSG:
-			c.Response().Write([]byte(fmt.Sprintf("[%s] %s: %s\r\n", cMessage.Timestamp.Format("2006-01-2 15:04:05 UTC"), cMessage.Username, cMessage.Text)))
+			c.Response().Write([]byte(fmt.Sprintf("[%s] #%s %s: %s\r\n", cMessage.Timestamp.Format("2006-01-2 15:04:05"), cMessage.Channel, cMessage.Username, cMessage.Text)))
 			break
 		case twitch.CLEARCHAT:
-			c.Response().Write([]byte(fmt.Sprintf("[%s] %s\r\n", cMessage.Timestamp.Format("2006-01-2 15:04:05 UTC"), cMessage.Text)))
+			c.Response().Write([]byte(fmt.Sprintf("[%s] #%s %s\r\n", cMessage.Timestamp.Format("2006-01-2 15:04:05"), cMessage.Channel, cMessage.Text)))
 			break
 		}
 	}
@@ -155,4 +158,13 @@ func writeJSONResponse(c echo.Context, logResult *chatLog) error {
 	}
 
 	return c.Blob(http.StatusOK, echo.MIMEApplicationJSONCharsetUTF8, data)
+}
+
+func parseTimestamp(timestamp string) (time.Time, error) {
+
+	i, err := strconv.ParseInt(timestamp, 10, 64)
+	if err != nil {
+		return time.Now(), err
+	}
+	return time.Unix(i, 0), nil
 }

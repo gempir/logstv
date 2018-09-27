@@ -16,7 +16,7 @@ var channelHourLimit = 1.0
 func getChannelLogs(c echo.Context) error {
 	channel := strings.TrimSpace(strings.ToLower(c.Param("channel")))
 
-	fromTime, toTime, err := parseFromTo(c.QueryParam("from"), c.QueryParam("to"))
+	fromTime, toTime, err := parseFromTo(c.QueryParam("from"), c.QueryParam("to"), channelHourLimit)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
@@ -56,12 +56,13 @@ func getChannelLogs(c echo.Context) error {
 	var fetchedUserid int64
 	var messageRaw string
 	for iter.Scan(&messageRaw, &ts, &fetchedUserid) {
-		_, user, parsedMessage := twitch.ParseMessage(messageRaw)
+		channel, user, parsedMessage := twitch.ParseMessage(messageRaw)
 
 		message.Timestamp = timestamp{ts}
 		message.Username = user.Username
 		message.Text = parsedMessage.Text
 		message.Type = parsedMessage.Type
+		message.Channel = channel
 
 		logResult.Messages = append(logResult.Messages, message)
 	}
