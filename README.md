@@ -8,7 +8,7 @@ Most of the stuff is still in development.
 - use versioning for go dependencies
 - write a frontend
 - jenkinsfile for easier deployments
-- improve messages table so also full channels can be queried
+- implement rq: get latest and oldest message by timestamp, generate a random date between latest and oldest --> then what?
 
 # Helpful
 
