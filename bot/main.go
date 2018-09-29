@@ -42,6 +42,26 @@ func main() {
 		go persistMessage(channelid, userid, message.Time, message.Raw)
 	})
 
+	tClient.OnNewRoomstateMessage(func(channel string, user twitch.User, message twitch.Message) {
+		channelid, err := strconv.ParseInt(message.Tags["room-id"], 10, 64)
+		if err != nil {
+			log.Errorf("Error parsing room-id to int64: %s", err.Error())
+		}
+		go persistMessage(channelid, channelid, time.Now(), message.Raw)
+	})
+
+	tClient.OnNewUsernoticeMessage(func(channel string, user twitch.User, message twitch.Message) {
+		userid, err := strconv.ParseInt(message.Tags["user-id"], 10, 64)
+		if err != nil {
+			log.Errorf("Error parsing room-id to int64: %s", err.Error())
+		}
+		channelid, err := strconv.ParseInt(message.Tags["room-id"], 10, 64)
+		if err != nil {
+			log.Errorf("Error parsing room-id to int64: %s", err.Error())
+		}
+		go persistMessage(channelid, userid, message.Time, message.Raw)
+	})
+
 	go func() {
 		for {
 			joinSavedChannels()
