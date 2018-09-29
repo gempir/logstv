@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -25,27 +24,17 @@ func getChannelLogs(c echo.Context) error {
 
 	var logResult chatLog
 
-	orderBy := orderAsc
-	_, reverse := c.QueryParams()["reverse"]
-	if reverse {
-		orderBy = orderDesc
+	orderBy := buildOrder(c)
+	limit, err := buildLimit(c)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, "Invalid limit")
 	}
 
-	limit := c.QueryParam("limit")
-	limitInt := 0
-	if limit != "" {
-		limitInt, err = strconv.Atoi(limit)
-
-		if err != nil || limitInt < 1 {
-			return c.JSON(http.StatusBadRequest, "Invalid limit")
-		}
-	}
-
-	selectFields := []string{"message", "timestamp", "userid"}
-	whereClauses := []string{"channelid = ?", "timestamp >= ?", "timestamp <= ?"}
+	selectFields := []string{"message", "dateOf(timeuuid)"}
+	whereClauses := []string{"channelid = ?", "timeuuid >= maxTimeuuid(?)", "timeuuid <= minTimeuuid(?)"}
 
 	iter := cassandra.Query(
-		buildQuery(selectFields, "logstv.channel_messages", whereClauses, orderBy, limitInt),
+		buildQuery(selectFields, "logstv.channel_messages", whereClauses, orderBy, limit),
 		channelid,
 		fromTime,
 		toTime,
@@ -53,9 +42,8 @@ func getChannelLogs(c echo.Context) error {
 
 	var message chatMessage
 	var ts time.Time
-	var fetchedUserid int64
 	var messageRaw string
-	for iter.Scan(&messageRaw, &ts, &fetchedUserid) {
+	for iter.Scan(&messageRaw, &ts) {
 		channel, user, parsedMessage := twitch.ParseMessage(messageRaw)
 
 		message.Timestamp = timestamp{ts}

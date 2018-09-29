@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -28,27 +27,17 @@ func getChannelUserLogs(c echo.Context) error {
 
 	var logResult chatLog
 
-	orderBy := orderAsc
-	_, reverse := c.QueryParams()["reverse"]
-	if reverse {
-		orderBy = orderDesc
+	orderBy := buildOrder(c)
+	limit, err := buildLimit(c)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, "Invalid limit")
 	}
 
-	limit := c.QueryParam("limit")
-	limitInt := 0
-	if limit != "" {
-		limitInt, err = strconv.Atoi(limit)
-
-		if err != nil || limitInt < 1 {
-			return c.JSON(http.StatusBadRequest, "Invalid limit")
-		}
-	}
-
-	selectFields := []string{"message", "timestamp", "userid"}
-	whereClauses := []string{"userid = ?", "channelid = ?", "timestamp >= ?", "timestamp <= ?"}
+	selectFields := []string{"message", "dateOf(timeuuid)", "userid"}
+	whereClauses := []string{"userid = ?", "channelid = ?", "timeuuid >= maxTimeuuid(?)", "timeuuid <= minTimeuuid(?)"}
 
 	iter := cassandra.Query(
-		buildQuery(selectFields, "logstv.messages", whereClauses, orderBy, limitInt),
+		buildQuery(selectFields, "logstv.messages", whereClauses, orderBy, limit),
 		userid,
 		channelid,
 		fromTime,

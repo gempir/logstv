@@ -168,3 +168,29 @@ func parseTimestamp(timestamp string) (time.Time, error) {
 	}
 	return time.Unix(i, 0), nil
 }
+
+func buildOrder(c echo.Context) order {
+	dataOrder := orderAsc
+	_, reverse := c.QueryParams()["reverse"]
+	if reverse {
+		dataOrder = orderDesc
+	}
+
+	return dataOrder
+}
+
+func buildLimit(c echo.Context) (int, error) {
+	limit := c.QueryParam("limit")
+	limitInt := 0
+	var err error
+
+	if limit != "" {
+		limitInt, err = strconv.Atoi(limit)
+
+		if err != nil || limitInt < 1 {
+			return 0, err
+		}
+	}
+
+	return limitInt, nil
+}

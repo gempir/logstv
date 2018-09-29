@@ -14,26 +14,24 @@ var queries = []string{
 		'replication_factor' : 1 
 	};`,
 	`CREATE TABLE IF NOT EXISTS logstv.messages (
-		timestamp timestamp,
+		timeuuid timeuuid,
 		channelid bigint,
 		userid bigint,
 		message text,
-		PRIMARY KEY ((channelid, userid), timestamp)
-	) WITH CLUSTERING ORDER BY (timestamp DESC);`,
+		PRIMARY KEY ((channelid, userid), timeuuid)
+	) WITH CLUSTERING ORDER BY (timeuuid ASC);`,
 	`CREATE TABLE IF NOT EXISTS logstv.channel_messages (
-		timestamp timestamp,
+		timeuuid timeuuid,
 		channelid bigint,
-		userid bigint,
 		message text,
-		PRIMARY KEY ((channelid), timestamp)
-	) WITH CLUSTERING ORDER BY (timestamp DESC);`,
+		PRIMARY KEY ((channelid), timeuuid)
+	) WITH CLUSTERING ORDER BY (timeuuid ASC);`,
 	`CREATE TABLE IF NOT EXISTS logstv.user_messages (
-		timestamp timestamp,
-		channelid bigint,
+		timeuuid timeuuid,
 		userid bigint,
 		message text,
-		PRIMARY KEY ((userid), timestamp)
-	) WITH CLUSTERING ORDER BY (timestamp DESC);`,
+		PRIMARY KEY ((userid), timeuuid)
+	) WITH CLUSTERING ORDER BY (timeuuid ASC);`,
 	`CREATE TABLE IF NOT EXISTS logstv.channels (
 		userid bigint,
 		username text,

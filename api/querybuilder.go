@@ -22,7 +22,7 @@ func buildQuery(selectFields []string, table string, whereClauses []string, orde
 	}
 
 	return fmt.Sprintf(
-		"SELECT %s FROM %s WHERE %s ORDER BY timestamp %s %s",
+		"SELECT %s FROM %s WHERE %s ORDER BY timeuuid %s %s",
 		selectFieldsJoined,
 		table,
 		whereClausesJoined,

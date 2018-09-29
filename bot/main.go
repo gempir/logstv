@@ -54,19 +54,19 @@ func main() {
 
 func persistMessage(channelid int64, userid int64, time time.Time, messageRaw string) {
 	go func() {
-		err := cassandra.Query("INSERT INTO logstv.messages (channelid, userid, message, timestamp) VALUES (?, ?, ?, ?)", channelid, userid, messageRaw, time).Exec()
+		err := cassandra.Query("INSERT INTO logstv.messages (channelid, userid, message, timeuuid) VALUES (?, ?, ?, ?)", channelid, userid, messageRaw, gocql.UUIDFromTime(time)).Exec()
 		if err != nil {
 			log.Errorf("Failed message INSERT %s", err.Error())
 		}
 	}()
 	go func() {
-		err := cassandra.Query("INSERT INTO logstv.channel_messages (channelid, userid, message, timestamp) VALUES (?, ?, ?, ?)", channelid, userid, messageRaw, time).Exec()
+		err := cassandra.Query("INSERT INTO logstv.channel_messages (channelid, message, timeuuid) VALUES (?, ?, ?)", channelid, messageRaw, gocql.UUIDFromTime(time)).Exec()
 		if err != nil {
 			log.Errorf("Failed channel_message INSERT %s", err.Error())
 		}
 	}()
 	go func() {
-		err := cassandra.Query("INSERT INTO logstv.user_messages (channelid, userid, message, timestamp) VALUES (?, ?, ?, ?)", channelid, userid, messageRaw, time).Exec()
+		err := cassandra.Query("INSERT INTO logstv.user_messages (userid, message, timeuuid) VALUES (?, ?, ?)", userid, messageRaw, gocql.UUIDFromTime(time)).Exec()
 		if err != nil {
 			log.Errorf("Failed channel_message INSERT %s", err.Error())
 		}
