@@ -1,0 +1,64 @@
+---
+# tasks file for ansible-portainer
+
+- name: install pip
+  apt: name=python-pip state=latest
+
+- name: upgrade pip
+  pip:
+    name: pip
+    state: latest
+
+- name: install pip dependencies
+  pip:
+    name: "{{ item }}"
+  with_items:
+    - docker-py
+
+- name: pull the docker image
+  docker_image:
+    name: "portainer/portainer"
+
+- name: launch the portainer docker
+  docker_container:
+    name: portainer
+    image: "portainer/portainer"
+    state: started
+    detach: true
+    recreate: yes
+    restart_policy: always
+    published_ports: 
+      - "127.0.0.1:9000:9000"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    command: "-H unix:///var/run/docker.sock --admin-password '{{ portainer_password }}'"
+
+- name: install nginx site for letsencrypt requests
+  template:
+    src: templates/nginx.j2
+    dest: /etc/nginx/sites-enabled/portainer
+
+- name: reload nginx to activate letsencrypt site
+  service: name=nginx state=restarted
+
+- name: create letsencrypt directory
+  file: name=/var/www/letsencrypt/{{ portainer_host }} state=directory
+
+- name: create letsencrypt certificate
+  shell: letsencrypt certonly -n --webroot -w /var/www/letsencrypt/{{ portainer_host }} -m {{ email }} --agree-tos -d {{ portainer_host }}
+  args:
+    creates: /etc/letsencrypt/live/{{ portainer_host }}
+
+- name: install nginx site for ssl requests
+  template:
+    src: templates/nginx-ssl.j2
+    dest: /etc/nginx/sites-enabled/portainer-ssl
+
+- name: reload nginx to activate specified site
+  service: name=nginx state=restarted
+
+- name: add letsencrypt cronjob for cert renewal
+  cron:
+    name: letsencrypt_renewal
+    special_time: weekly
+    job: letsencrypt --renew certonly -n --webroot -w /var/www/letsencrypt -m {{ email }} --agree-tos -d {{ portainer_host }} && service nginx reload

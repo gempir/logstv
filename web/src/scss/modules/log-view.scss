@@ -1,0 +1,28 @@
+.log-view {
+    flex: 0.9;
+    background: $grey-medium;
+    @include box-shadow(1);
+
+    .line {
+        padding: 0.25rem;
+        color: white;
+        border-bottom: 1px solid $grey-light;
+        font-size: 13px;
+        line-height: 16px;
+
+        .timestamp {
+            position: relative;
+            margin-right: 0.25rem;
+            height: 16px;  
+            
+            &:hover {
+                cursor: pointer;
+                @include box-shadow(2);
+            }
+        }
+
+        &:last-child {
+            border: 0;
+        }
+    }
+}

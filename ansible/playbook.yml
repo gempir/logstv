@@ -1,0 +1,14 @@
+---
+- name: Provision hosts for logstv
+  hosts: all
+  remote_user: root
+  
+  roles:
+    - {role: 'common', tags: ['common']}
+    - {role: 'nginx', tags: 'nginx'}
+    - {role: 'geerlingguy.docker', tags: ['docker']}
+    - {role: 'portainer', tags: ['docker', 'portainer']}
+
+  handlers:
+    - name: restart ufw
+      service: name=ufw state=restarted
