@@ -1,29 +1,64 @@
 .filter {
-    position: fixed;
+    position: relative;
     display: flex;
-    top: 0;
-    left: 0;
-    right: 0;
     width: 100%;
     background: $grey-medium;
     margin-right: 15px;
-    padding: 1rem;
+    height: 30px;
+
     @include box-shadow(1);
+
+    img {
+        margin: 1px 5px 1px 3px;
+        height: 100%;
+        width: auto;
+
+        cursor: pointer
+    }
 
     .channel-filter, .username-filter {
         width: 150px;
-        padding-right: 20px;
-    }
+        padding: 8px;
+        margin-right: 10px;
+        
+        &:hover {
+            @include box-shadow(2);
+        }
 
-    input {
-        &::-webkit-input-placeholder {
-            opacity: 0.25;
+        &:focus {
+            background: $grey-medium-dark;
         }
     }
 
     .show-logs {
-        position: absolute;
-        bottom: 1rem;
-        right: 1rem;
+        border: 0;
+        outline: 0;
+        background: $grey-dark;
+        color: white;
+        padding: 3px 10px;
+        cursor: pointer;
+        
+        &:hover {
+            background: $grey-medium-dark;
+        }
     }
+
+    input {
+        background: $grey-dark;
+        border: 0;
+        caret-color: white;
+        color: white;
+
+        &:focus {
+            border: 0;
+            outline: none;
+        }
+
+        &::-webkit-input-placeholder {
+            color: white;
+            opacity: 0.5;
+        }
+    }
+
+    
 }

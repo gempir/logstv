@@ -1,11 +1,14 @@
 import React, { Component } from 'react';
-import LogSearch from './LogSearch';
+import { BrowserRouter as Router, Route } from 'react-router-dom'
+import LogView from './LogView';
 
 export default class App extends Component {
 
 	render() {
 		return (
-			<LogSearch />
+			<Router>
+      			<Route exact path="/" component={LogView}/>
+  			</Router>
 		);
     }
 }

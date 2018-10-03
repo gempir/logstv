@@ -10,14 +10,6 @@
         font-size: 13px;
         line-height: 16px;
 
-        &:hover {
-            background: $grey-light;
-
-            .timestamp {
-                background: $grey-dark;
-            }
-        }
-
         .timestamp {
             position: relative;
             margin-right: 0.25rem;

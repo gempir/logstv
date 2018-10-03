@@ -3,19 +3,14 @@ import moment from 'moment';
 
 export default class LogView extends Component {
     render() {
-		if (!this.props.isLoading) {
-			
-		} else {
-
-		}
 
 		return (
 			<div className="log-view">
-				{this.props.logs.map((value, key) => 
+				{/* {this.props.logs.map((value, key) => 
 					<div key={key} className="line">
-						<a href={`#${value.timestamp}`}><span className="timestamp">{this.formatDate(value.timestamp)}</span></a> {value.message}
+						<a href={`#${value.timestamp}`}><span className="timestamp">{this.formatDate(value.timestamp)}</span></a> {value.text}
 					</div>
-				)}
+				)} */}
 			</div>
 		);
 	}

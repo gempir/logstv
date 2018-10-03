@@ -14,19 +14,12 @@ export default class LogSearch extends Component {
             visibleLogs: [],
             isLoading: false,
         };
-
-		fetch("https://api.gempir.com/channel").then((response) => {
-			return response.json()
-		}).then((json) => {
-			this.setState({...this.state, channels: json.channels, selectedChannel: json.channels[0]});
-        });
 	}
 
 	render() {
 		return (
 			<div className="log-search">
                 <Filter 
-                    channels={this.state.channels} 
                     searchLogs={this.searchLogs} 
                 /> 
                 <LogView logs={this.state.visibleLogs} isLoading={this.state.isLoading}/>
@@ -43,15 +36,17 @@ export default class LogSearch extends Component {
             }
         }
 
-        fetch(`https://api.gempir.com/channel/${channel}/user/${username}/${year}/${month}`, options).then(this.checkStatus).then((response) => {
+        fetch(`https://api.logs.tv/channel/${channel}/user/${username}`, options).then(this.checkStatus).then((response) => {
 			return response.json()
 		}).then((json) => {
+        
+            console.log(json);
 
-            for (let value of json) {
+            for (let value of json.messages) {
                 value.timestamp = Date.parse(value.timestamp)
             }
 
-            this.setState({...this.state, isLoading: false, logs: json, visibleLogs: json});
+            this.setState({...this.state, isLoading: false, logs: json.messages, visibleLogs: json.messages});
 		}).catch((error) => {
             this.setState({...this.state, isLoading: false, logs: [], visibleLogs: []});
         });
