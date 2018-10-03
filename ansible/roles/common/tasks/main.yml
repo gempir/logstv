@@ -6,6 +6,22 @@
     update_cache: yes
     cache_valid_time: 86400 #One day
 
+- name: Install ufw
+  apt: name=ufw state=present
+
+- name: Allow ssh in UFW
+  ufw: rule=allow port=22 proto=tcp
+
+- name: Allow http in UFW
+  ufw: rule=allow port=80 proto=tcp
+
+- name: Allow https in UFW
+  ufw: rule=allow port=443 proto=tcp
+
+- name: Set firewall default policy
+  ufw: state=enabled policy=reject
+  sudo: true
+
 - name: Install htop
   apt: name=htop state=present
 
