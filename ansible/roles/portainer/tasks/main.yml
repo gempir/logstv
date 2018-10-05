@@ -1,20 +1,4 @@
 ---
-# tasks file for ansible-portainer
-
-- name: install pip
-  apt: name=python-pip state=latest
-
-- name: upgrade pip
-  pip:
-    name: pip
-    state: latest
-
-- name: install pip dependencies
-  pip:
-    name: "{{ item }}"
-  with_items:
-    - docker-py
-
 - name: pull the docker image
   docker_image:
     name: "portainer/portainer"

@@ -1,4 +1,4 @@
-package api
+package main
 
 import (
 	"bufio"
@@ -55,13 +55,6 @@ func (s *Server) getCurrentUserLogs(c echo.Context) error {
 
 	redirectURL := fmt.Sprintf("/channel/%s/user/%s/%d/%s", channel, username, year, month)
 	return c.Redirect(303, redirectURL)
-}
-
-func (s *Server) getAllChannels(c echo.Context) error {
-	response := new(AllChannelsJSON)
-	response.Channels = s.channels
-
-	return c.JSON(http.StatusOK, response)
 }
 
 func (s *Server) getCurrentChannelLogs(c echo.Context) error {

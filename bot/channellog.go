@@ -1,4 +1,4 @@
-package filelog
+package main
 
 import (
 	"fmt"

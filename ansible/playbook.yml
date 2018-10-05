@@ -8,6 +8,7 @@
     - {role: 'nginx', tags: 'nginx'}
     - {role: 'geerlingguy.docker', tags: ['docker']}
     - {role: 'portainer', tags: ['docker', 'portainer']}
+    - {role: 'relaybroker', tags: ['docker', 'relaybroker']}
 
   handlers:
     - name: restart ufw

@@ -1,4 +1,4 @@
-package api
+package main
 
 import (
 	"fmt"
@@ -10,22 +10,14 @@ import (
 
 // Server api server
 type Server struct {
-	port     string
-	logPath  string
-	channels []string
+	logPath string
 }
 
 // NewServer create Server
 func NewServer() Server {
 	return Server{
-		logPath:  "/var/twitch_logs",
-		channels: []string{},
+		logPath: "/var/twitch_logs",
 	}
-}
-
-// AddChannel to in-memory store to serve joined channels
-func (s *Server) AddChannel(channel string) {
-	s.channels = append(s.channels, channel)
 }
 
 // Init api server
@@ -45,7 +37,6 @@ func (s *Server) Init() {
 		return c.String(http.StatusOK, "Hello, World!")
 	})
 	e.GET("/channel/:channel/user/:username", s.getCurrentUserLogs)
-	e.GET("/channel", s.getAllChannels)
 	e.GET("/channel/:channel", s.getCurrentChannelLogs)
 	e.GET("/channel/:channel/:year/:month/:day", s.getDatedChannelLogs)
 	e.GET("/channel/:channel/user/:username/:year/:month", s.getDatedUserLogs)

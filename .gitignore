@@ -4,4 +4,7 @@ vendor/
 coverage-all.out
 coverage.out
 .env
-logs/
+
+bot/logs/*
+!bot/logs/.gitkeep
+bot/channels

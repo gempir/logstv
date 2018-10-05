@@ -34,6 +34,20 @@
     groups: logstv
     append: yes
 
+- name: install pip
+  apt: name=python-pip state=latest
+
+- name: upgrade pip
+  pip:
+    name: pip
+    state: latest
+
+- name: install pip dependencies
+  pip:
+    name: "{{ item }}"
+  with_items:
+    - docker-py
+
 # - name: creates directory
 #   file:
 #     path: /etc/logstv
