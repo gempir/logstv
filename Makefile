@@ -1,33 +1,26 @@
 
 
-# build: build_api build_bot build_relaybroker
 
-# .PHONY: build_api
-# build_api:
-# 	@echo "=== Building API ==="
-# 	@cd api && go get ./... && env GOOS=linux GOARCH=amd64 go build
-# 	@tar -czvf build_api.tar.gz api/api
-
-.PHONY: build_bot
-build_bot:
+.PHONY: bot
+bot:
 	@echo "=== Building Bot ==="
 	@docker build -t gempir/logstvbot bot
 
-.PHONY: dev_bot
-dev_bot: build_bot
-	@echo "=== Running Bot ==="
-	@docker run --rm -p 8025:8025 -v `pwd`/bot/logs:/var/twitch_logs -v `pwd`/bot/channels:/etc/channels --name logstvbot gempir/logstvbot 
-
-.PHONY: build_relaybroker
-build_relaybroker: clone_relaybroker
-	@echo "=== Building Relaybroker ==="
-	@cd relaybroker && go get ./... && env GOOS=linux GOARCH=amd64 go build
-	@tar -czvf build_relaybroker.tar.gz relaybroker/relaybroker
+.PHONY: push_bot
+push_bot: bot
+	@echo "=== Pushing Bot to Dockerhub ==="
+	@docker push gempir/logstvbot
 
 .PHONY: deploy
-deploy: 
-	@echo "=== Deploying 3 Apps ==="
-	@deploy/deploy.sh build_api.tar.gz build_bot.tar.gz	build_relaybroker.tar.gz
+deploy:
+	@echo "=== Deploying compose files ==="
+	@scp docker-compose.yml root@eros.logs.tv:/root
+	@scp docker-compose.prod.yml root@eros.logs.tv:/root
+	@ssh root@eros.logs.tv docker-compose -f docker-compose.yml -f docker-compose.prod.yml pull
+	@ssh root@eros.logs.tv docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+.PHONY: release
+release: bot push_bot deploy
 
 provision: 
 	ansible-playbook -i ansible/hosts ansible/playbook.yml --ask-vault-pass ${ARGS}

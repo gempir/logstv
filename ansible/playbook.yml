@@ -5,11 +5,14 @@
   
   roles:
     - {role: 'common', tags: ['common']}
-    - {role: 'nginx', tags: 'nginx'}
     - {role: 'geerlingguy.docker', tags: ['docker']}
-    - {role: 'portainer', tags: ['docker', 'portainer']}
-    - {role: 'relaybroker', tags: ['docker', 'relaybroker']}
+    - {role: 'traefik', tags: ['traefik']}
+    - {role: 'portainer', tags: ['portainer']}
+    - {role: 'bot', tags: ['bot']}
 
   handlers:
     - name: restart ufw
       service: name=ufw state=restarted
+
+    - name: Reload systemd daemon
+      command: systemctl daemon-reload

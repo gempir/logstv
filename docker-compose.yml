@@ -1,11 +1,31 @@
-version: "2.1"
+version: '3'
+
 services:
-  gempbotgo:
-    build: ./
-    restart: always
-    ports:
-      - "8025:8025"
-    env_file:
-      - .env
-    volumes:
-      - /mnt/c/logs:/var/twitch_logs
+    bot:
+        image: gempir/logstvbot
+        volumes:
+        - /var/twitch_logs:/var/twitch_logs
+        - /etc/logstv_channels:/etc/channels
+    portainer:
+        image: portainer/portainer
+        command: -H unix:///var/run/docker.sock
+        volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - /var/portainer:/data
+        labels:
+        - "traefik.backend=portainer"
+        - "traefik.frontend.rule=Host:portainer.logs.tv"
+        - "traefik.enable=true"
+        - "traefik.port=9000"
+    traefik:
+        image: traefik
+        command: --api --docker
+        ports:
+        - "80:80"
+        - "443:443"
+        volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - /var/traefik/traefik.toml:/traefik.toml
+        labels:
+        - "traefik.frontend.rule=Host:traefik.logs.tv"
+        - "traefik.port=8080"

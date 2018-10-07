@@ -15,25 +15,6 @@
 - name: install ufw firewall
   include: ufw.yml
 
-- name: ensure group "logstv" exists
-  group:
-    name: logstv
-    state: present
-
-- name: create logstvbot user
-  user:
-    name: logstvbot
-    shell: /bin/bash
-    groups: logstv
-    append: yes
-
-- name: create logstvapi user
-  user:
-    name: logstvapi
-    shell: /bin/bash
-    groups: logstv
-    append: yes
-
 - name: install pip
   apt: name=python-pip state=latest
 
@@ -47,27 +28,3 @@
     name: "{{ item }}"
   with_items:
     - docker-py
-
-# - name: creates directory
-#   file:
-#     path: /etc/logstv
-#     state: directory
-#     owner: root
-#     group: logstv
-#     mode: 0750
-
-# - name: create logstv .env file
-#   template:
-#     src: templates/logstv_env.j2
-#     dest: /etc/logstv/.env
-#     owner: root
-#     group: logstv
-#     mode: 0640
-
-# - name: create logstv auth file
-#   template:
-#     src: templates/logstv.auth
-#     dest: /etc/logstv/auth
-#     owner: root
-#     group: logstv
-#     mode: 0640

@@ -1,0 +1,33 @@
+---
+- name: creates directory
+  file:
+    path: /var/traefik
+    state: directory
+    owner: root
+    group: docker
+    mode: 0740
+
+- name: ensure file exists
+  copy:
+    content: ""
+    dest: /var/traefik/acme.json
+    force: no
+    group: docker
+    owner: root
+    mode: 0640
+
+- name: create traefik config file
+  template:
+    src: templates/traefik.toml.j2
+    dest: /var/traefik/traefik.toml
+    owner: root
+    group: logstv
+    mode: 0640
+
+- name: create traefik .env file
+  template:
+    src: templates/traefik.env.j2
+    dest: /var/traefik/.env
+    owner: root
+    group: docker
+    mode: 0640

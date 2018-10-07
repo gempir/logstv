@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+    bot:
+        build: ./bot
+        volumes:
+        - ./bot/logs:/var/twitch_logs
+        - ./bot/channels:/etc/channels
+    portainer:
+        volumes:
+        - ./portainer_data:/data
+        labels:
+        - "traefik.frontend.rule=Host:portainer.localhost"
+    traefik:
+        volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - ./config/traefik.toml:/traefik.toml
+        labels:
+        - "traefik.frontend.rule=Host:traefik.localhost"

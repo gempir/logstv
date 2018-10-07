@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -11,6 +13,17 @@ import (
 
 func main() {
 	twitchClient := twitch.NewClient("justinfan123123123", "oauth:123123123")
+
+	ircAddress, ok := os.LookupEnv("IRCADDRESS")
+	if ok {
+		twitchClient.IrcAddress = ircAddress
+	}
+
+	tls, ok := os.LookupEnv("TLS")
+	if ok && tls == "0" {
+		twitchClient.TLS = false
+	}
+
 	fileLogger := NewFileLogger()
 
 	go func() {
@@ -46,5 +59,6 @@ func main() {
 		}()
 	})
 
-	twitchClient.Connect()
+	fmt.Printf("Starting bot IrcAddress: %s TLS: %s\n", ircAddress, tls)
+	panic(twitchClient.Connect())
 }
