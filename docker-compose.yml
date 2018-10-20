@@ -3,9 +3,14 @@ version: '3'
 services:
     bot:
         image: gempir/logstvbot
-        volumes:
-        - /var/twitch_logs:/var/twitch_logs
-        - /etc/logstv_channels:/etc/channels
+    api:
+        image: gempir/logstvapi
+        ports:
+        - "8010:8010"
+        labels:
+        - "traefik.frontend.rule=Host:api.logs.tv"
+        - "traefik.enable=true"
+        - "traefik.port=8010"
     portainer:
         image: portainer/portainer
         command: -H unix:///var/run/docker.sock

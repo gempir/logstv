@@ -21,7 +21,7 @@
     src: templates/traefik.toml.j2
     dest: /var/traefik/traefik.toml
     owner: root
-    group: logstv
+    group: docker
     mode: 0640
 
 - name: create traefik .env file

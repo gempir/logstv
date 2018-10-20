@@ -1,0 +1,9 @@
+package: github.com/gempir/gempbotgo/api
+import:
+- package: github.com/gempir/go-twitch-irc
+- package: github.com/json-iterator/go
+- package: github.com/labstack/echo
+  subpackages:
+  - middleware
+- package: github.com/minio/minio-go
+- package: github.com/sirupsen/logrus

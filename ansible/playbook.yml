@@ -9,6 +9,7 @@
     - {role: 'traefik', tags: ['traefik']}
     - {role: 'portainer', tags: ['portainer']}
     - {role: 'bot', tags: ['bot']}
+    - {role: 'api', tags: ['api']}
 
   handlers:
     - name: restart ufw

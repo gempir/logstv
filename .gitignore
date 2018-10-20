@@ -5,7 +5,4 @@ coverage-all.out
 coverage.out
 .env
 
-bot/logs/*
-!bot/logs/.gitkeep
-bot/channels
-portainer_data
+bot/.env

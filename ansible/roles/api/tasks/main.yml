@@ -6,7 +6,7 @@
     owner: root
     group: docker
     mode: 0740
-
+    
 - name: create bot env file
   template:
     src: templates/env.j2

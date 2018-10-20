@@ -1,64 +1,70 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/gempir/go-twitch-irc"
+	_ "github.com/go-sql-driver/mysql"
+	minio "github.com/minio/minio-go"
+	log "github.com/sirupsen/logrus"
+)
+
+var (
+	s3Client *minio.Client
+	s3Bucket string
 )
 
 func main() {
-	twitchClient := twitch.NewClient("justinfan123123123", "oauth:123123123")
+	tClient := twitch.NewClient("justinfan123123", "oauth:123123123")
 
-	ircAddress, ok := os.LookupEnv("IRCADDRESS")
-	if ok {
-		twitchClient.IrcAddress = ircAddress
+	var err error
+	s3Client, err = minio.NewV2(os.Getenv("S3_ENDPOINT"), os.Getenv("S3_ACCESS_ID"), os.Getenv("S3_ACCESS_KEY"), true)
+	if err != nil {
+		log.Fatalln(err)
 	}
+	s3Bucket = os.Getenv("S3_BUCKET")
 
-	tls, ok := os.LookupEnv("TLS")
-	if ok && tls == "0" {
-		twitchClient.TLS = false
-	}
-
-	fileLogger := NewFileLogger()
-
-	go func() {
-		for {
-			data, err := ioutil.ReadFile("/etc/channels")
-			if err != nil {
-				panic(err)
-			}
-
-			channels := strings.Split(string(data), "\n")
-			for _, channel := range channels {
-				twitchClient.Join(channel)
-			}
-
-			time.Sleep(time.Minute)
-		}
-	}()
-
-	twitchClient.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {
-
-		go func() {
-			err := fileLogger.LogMessageForUser(channel, user, message)
-			if err != nil {
-				log.Println(err.Error())
-			}
-		}()
-
-		go func() {
-			err := fileLogger.LogMessageForChannel(channel, user, message)
-			if err != nil {
-				log.Println(err.Error())
-			}
-		}()
+	tClient.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {
+		go persistMessage(message.Tags["room-id"], message.Tags["user-id"], message.Time, message)
 	})
 
-	fmt.Printf("Starting bot IrcAddress: %s TLS: %s\n", ircAddress, tls)
-	panic(twitchClient.Connect())
+	tClient.OnNewClearchatMessage(func(channel string, user twitch.User, message twitch.Message) {
+		go persistMessage(message.Tags["room-id"], message.Tags["target-user-id"], message.Time, message)
+	})
+
+	tClient.OnNewUsernoticeMessage(func(channel string, user twitch.User, message twitch.Message) {
+		go persistMessage(message.Tags["room-id"], message.Tags["user-id"], message.Time, message)
+	})
+
+	tClient.Join("gempir")
+	// tClient.Join("pajlada")
+	// tClient.Join("nymn")
+	// tClient.Join("forsen")
+
+	panic(tClient.Connect())
+}
+
+func persistMessage(channelid string, userid string, timestamp time.Time, message twitch.Message) {
+	objectName := fmt.Sprintf("%s_%d_%d", userid, timestamp.Year(), timestamp.Month())
+
+	object, err := s3Client.GetObject(s3Bucket, objectName, minio.GetObjectOptions{})
+	if err != nil {
+		log.Error("Failure getting previous logs", err)
+		return
+	}
+	defer object.Close()
+
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(object)
+
+	reader := strings.NewReader(buf.String() + "\n" + message.Raw)
+
+	_, err = s3Client.PutObject(s3Bucket, objectName, reader, reader.Size(), minio.PutObjectOptions{})
+	if err != nil {
+		log.Error("Failure putting logs", err)
+	}
 }

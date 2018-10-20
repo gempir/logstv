@@ -1,13 +1,19 @@
 version: '3'
 
 services:
+    bot:
+        env_file:
+        - /var/logstv/bot.env
+    api:
+        env_file:
+        - /var/logstv/api.env
     traefik:
         volumes:
         - /var/traefik/acme.json:/acme.json
         env_file:
         - /var/traefik/.env
         labels:
-        - "traefik.frontend.auth.basic=gempir:$$apr1$$Z5B.FCe/$$uujOysJ4rJ2b5JoCwVlkG." # Careful I need escape the $ with another $
+        - "traefik.frontend.auth.basic=gempir:$$apr1$$Z5B.FCe/$$uujOysJ4rJ2b5JoCwVlkG." # Careful I need to escape the $ with another $
     portainer:
         command: -H unix:///var/run/docker.sock --admin-password-file /var/portainer/admin_password
         volumes:
