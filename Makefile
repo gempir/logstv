@@ -1,4 +1,3 @@
-# :)
 default: bot api 
 
 push: push_bot push_api
