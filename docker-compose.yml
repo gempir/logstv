@@ -3,6 +3,8 @@ version: '3'
 services:
     bot:
         image: gempir/logstvbot
+    archivist:
+        image: gempir/logstvarchivist
     api:
         image: gempir/logstvapi
         ports:

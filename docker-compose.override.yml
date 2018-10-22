@@ -5,6 +5,10 @@ services:
         build: ./bot
         env_file:
         - ./bot/.env
+    archivist:
+        build: ./archivist
+        env_file:
+        - ./archivist/.env
     api:
         build: ./api
         env_file:
@@ -22,3 +26,9 @@ services:
         - ./config/traefik.toml:/traefik.toml
         labels:
         - "traefik.frontend.rule=Host:traefik.localhost"
+    redis:
+        image: "bitnami/redis:latest"
+        environment:
+        - ALLOW_EMPTY_PASSWORD=yes
+        ports:
+        - "6379:6379"

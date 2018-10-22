@@ -1,8 +1,7 @@
 FROM golang:latest
 WORKDIR /go/src/github.com/gempir/logstv/api
 COPY . .
-RUN curl https://glide.sh/get | sh
-RUN glide install
+RUN go get ./...
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app .
 
 FROM alpine:latest  

@@ -4,6 +4,9 @@ services:
     bot:
         env_file:
         - /var/logstv/bot.env
+    archivist:
+        env_file:
+        - /var/logstv/archivist.env
     api:
         env_file:
         - /var/logstv/api.env

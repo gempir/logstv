@@ -1,6 +1,0 @@
-package: github.com/gempir/gempbotgo/bot
-import:
-- package: github.com/gempir/go-twitch-irc
-- package: github.com/go-sql-driver/mysql
-- package: github.com/minio/minio-go
-- package: github.com/sirupsen/logrus

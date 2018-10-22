@@ -1,6 +1,11 @@
-default: bot api 
+.PHONY: build
+build: bot api 
 
+.PHONY: push
 push: push_bot push_api
+
+.PHONY: release
+release: build push deploy
 
 .PHONY: bot
 bot:
@@ -23,18 +28,17 @@ push_api: api
 	@docker push gempir/logstvapi
 
 .PHONY: deploy
-deploy:
+deploy: 
 	@echo "=== Deploying compose files ==="
 	@scp docker-compose.yml root@apa.logs.tv:/root
 	@scp docker-compose.prod.yml root@apa.logs.tv:/root
 	@ssh root@apa.logs.tv docker-compose -f docker-compose.yml -f docker-compose.prod.yml pull
 	@ssh root@apa.logs.tv docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
-.PHONY: release
-release: bot push_bot deploy
-
+.PHONY: provision
 provision: 
 	ansible-playbook -i ansible/hosts ansible/playbook.yml --ask-vault-pass ${ARGS}
 
+.PHONY: remove_all
 remove_all:
 	docker rm `docker ps -aq`
